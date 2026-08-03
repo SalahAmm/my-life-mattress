@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Theme system and brand tokens; 05 — Management primitives
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Full sale end-to-end from the new UI (product → variant → custom dimension → customer → deposit → save → preview)
 - [ ] Cart/form reset only on "Terminer la vente"; closing preview or failed print never loses the sale

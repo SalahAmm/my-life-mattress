@@ -158,7 +158,60 @@ describe('CounterPage', () => {
     expect(screen.getAllByText(/Vente enregistrée/).length).toBeGreaterThanOrEqual(1)
     await user.click(screen.getByRole('button', { name: 'Imprimer' }))
     await waitFor(() => expect(mockApi.printing.printReceipt).toHaveBeenCalledWith(7))
+    expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Terminer la vente' }))
     await waitFor(() => expect(screen.getByText('Panier vide')).toBeInTheDocument())
+  })
+
+  it('ADR-0002: a successful print never clears the cart; only Terminer does', async () => {
+    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
+    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
+    renderCounter()
+    const user = await addVariant()
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(screen.getAllByText(/Vente enregistrée/).length).toBeGreaterThanOrEqual(1))
+    await user.click(screen.getByRole('button', { name: 'Imprimer' }))
+    await waitFor(() => expect(mockApi.printing.printReceipt).toHaveBeenCalledWith(7))
+    expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
+    expect(screen.getAllByText(/Vente enregistrée/).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('ADR-0002: closing the preview without printing keeps the sale safe and reprintable', async () => {
+    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
+    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
+    renderCounter()
+    const user = await addVariant()
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
+    await user.click(screen.getByRole('button', { name: 'Fermer' }))
+    expect(screen.queryByText(/Vente enregistrée/)).toBeInTheDocument()
+    expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
+  })
+
+  it('ADR-0002: Enregistrer is disabled while a saved sale is still open', async () => {
+    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
+    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
+    renderCounter()
+    const user = await addVariant()
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
+    const buttons = [...document.querySelectorAll('button')]
+    const saveButton = buttons.find((b) => b.textContent?.trim() === 'Enregistrer')
+    expect(saveButton).toBeDefined()
+    expect(saveButton?.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('shows the product card with letter tile, name, variant count and from-price', async () => {
+    renderCounter()
+    expect(await screen.findByText('Matelas Elite')).toBeInTheDocument()
+    expect(screen.getByText(/à partir de/)).toBeInTheDocument()
+  })
+
+  it('Enregistrer carries the gold accent', async () => {
+    renderCounter()
+    await screen.findByText('Panier vide')
+    const button = screen.getByRole('button', { name: 'Enregistrer' })
+    expect(button.className).toMatch(/bg-accent/)
   })
 
   it('never double-submits: the save button is disabled while pending', async () => {

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, Loader2, Minus, Plus, Ruler, ShoppingCart, Trash2 } from 'lucide-react'
+import { AlertTriangle, Loader2, Minus, Plus, Printer, Ruler, ShoppingCart, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { depositFromPercentage, formatDzd, saleTotal } from '@shared/money'
 import type { CounterProduct, NewSalePayload, SaleWithDetails, Session } from '@shared/types'
@@ -62,6 +62,7 @@ export function CounterPage({ session }: { session: Session }) {
   const [customPaymentMode, setCustomPaymentMode] = useState<'percent' | 'amount'>('percent')
   const [customPaymentValue, setCustomPaymentValue] = useState('')
   const [previewSale, setPreviewSale] = useState<SaleWithDetails | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [printError, setPrintError] = useState<string | null>(null)
 
   const total = useMemo(() => saleTotal(cart), [cart])
@@ -139,6 +140,7 @@ export function CounterPage({ session }: { session: Session }) {
       const saleId = await api.sales.create(payload)
       const sale = await api.sales.get(saleId)
       setPreviewSale(sale)
+      setPreviewOpen(true)
       setPrintError(null)
       return sale
     },
@@ -159,19 +161,24 @@ export function CounterPage({ session }: { session: Session }) {
       return result
     },
     onSuccess: () => {
-      setPreviewSale(null)
       setPrintError(null)
-      setCart([])
-      setCustomerName('')
-      setCustomerPhone('')
-      setPayment(null)
-      setExpandedProduct(null)
       toast.success(t('counter.saleSaved'))
     },
     onError: (error: Error) => {
       setPrintError(error.message)
     },
   })
+
+  const finishSale = () => {
+    setPreviewSale(null)
+    setPreviewOpen(false)
+    setPrintError(null)
+    setCart([])
+    setCustomerName('')
+    setCustomerPhone('')
+    setPayment(null)
+    setExpandedProduct(null)
+  }
 
   const addCustomItem = () => {
     const price = Number(customPrice)
@@ -217,7 +224,7 @@ export function CounterPage({ session }: { session: Session }) {
     return null
   }, [payment, t])
 
-  const saleIsValid = cart.length > 0 && !saleMutation.isPending
+  const saleIsValid = cart.length > 0 && !saleMutation.isPending && previewSale === null
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -514,10 +521,10 @@ export function CounterPage({ session }: { session: Session }) {
 
       {previewSale && settings && (
         <PrintPreviewDialog
-          open
+          open={previewOpen}
           onOpenChange={(open) => {
+            setPreviewOpen(open)
             if (!open) {
-              setPreviewSale(null)
               setPrintError(null)
             }
           }}
@@ -526,7 +533,24 @@ export function CounterPage({ session }: { session: Session }) {
           onPrint={() => printMutation.mutateAsync(previewSale.id)}
           printing={printMutation.isPending}
           printError={printError}
+          finishLabel={t('counter.finish')}
+          onFinish={finishSale}
         />
+      )}
+      {previewSale && !previewOpen && (
+        <div className="flex flex-wrap items-center gap-2 rounded-none border border-primary/30 bg-primary/5 p-3 text-sm">
+          <span className="font-semibold text-primary">{t('counter.saleSaved')}</span>
+          <span className="text-muted-foreground">N° {String(previewSale.id).padStart(4, '0')}</span>
+          <div className="ms-auto flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+              <Printer className="size-4" />
+              {t('counter.reopenPreview')}
+            </Button>
+            <Button size="sm" onClick={finishSale}>
+              {t('counter.finish')}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )

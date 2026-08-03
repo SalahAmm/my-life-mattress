@@ -12,6 +12,8 @@ interface PrintPreviewDialogProps {
   onPrint: () => Promise<unknown>
   printing: boolean
   printError: string | null
+  finishLabel?: string
+  onFinish?: () => void
 }
 
 export function PrintPreviewDialog({
@@ -22,6 +24,8 @@ export function PrintPreviewDialog({
   onPrint,
   printing,
   printError,
+  finishLabel,
+  onFinish,
 }: PrintPreviewDialogProps) {
   const { t } = useTranslation()
 
@@ -40,11 +44,16 @@ export function PrintPreviewDialog({
             {printError}
           </div>
         )}
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             <X />
             {t('counter.close')}
           </Button>
+          {finishLabel && onFinish && (
+            <Button variant="outline" onClick={onFinish}>
+              {finishLabel}
+            </Button>
+          )}
           <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => void onPrint()} disabled={printing}>
             <Printer />
             {t('counter.print')}

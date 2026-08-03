@@ -101,6 +101,8 @@
     "printFailed": "Impression impossible",
     "printFailedHint": "La vente est enregistrée. Vérifiez l'imprimante puis réessayez.",
     "saleSaved": "Vente enregistrée",
+    "finish": "Terminer la vente",
+    "reopenPreview": "Afficher le reçu",
     "close": "Fermer",
     "zeroStock": "Stock: 0",
     "customTag": "Personnalisé",

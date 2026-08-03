@@ -101,6 +101,8 @@
     "printFailed": "تعذّرت الطباعة",
     "printFailedHint": "تم تسجيل البيع. تحقق من الطابعة ثم أعد المحاولة.",
     "saleSaved": "تم تسجيل البيع",
+    "finish": "إنهاء البيع",
+    "reopenPreview": "عرض الإيصال",
     "close": "إغلاق",
     "zeroStock": "المخزون: 0",
     "customTag": "مخصص",
