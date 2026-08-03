@@ -21,7 +21,9 @@ import { Separator } from '@/components/ui/separator'
 import { PrintPreviewDialog } from '@/components/print-preview-dialog'
 import { PageHeader } from '@/components/management/page-header'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { WILAYAS } from '@shared/wilayas'
 
 interface CartLine {
   key: string
@@ -66,6 +68,9 @@ export function CounterPage({ session }: { session: Session }) {
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [freeDelivery, setFreeDelivery] = useState(false)
+  const [wilaya, setWilaya] = useState<string>('none')
+  const [customWilaya, setCustomWilaya] = useState('')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
   const [payment, setPayment] = useState<PaymentSelection | null>(null)
   const [customDialogOpen, setCustomDialogOpen] = useState(false)
   const [customDimension, setCustomDimension] = useState('')
@@ -154,8 +159,8 @@ export function CounterPage({ session }: { session: Session }) {
       const payload: NewSalePayload = {
         customerName: customerName.trim() || 'Client',
         customerPhone: customerPhone.trim() || null,
-        wilaya: null,
-        deliveryAddress: null,
+        wilaya: wilaya === 'none' ? null : wilaya === '__custom' ? (customWilaya.trim() || null) : wilaya,
+        deliveryAddress: deliveryAddress.trim() || null,
         freeDelivery,
         items,
         payment:
@@ -220,6 +225,9 @@ export function CounterPage({ session }: { session: Session }) {
     setCustomerName('')
     setCustomerPhone('')
     setFreeDelivery(false)
+    setWilaya('none')
+    setCustomWilaya('')
+    setDeliveryAddress('')
     setPayment(null)
   }
 
@@ -284,6 +292,12 @@ export function CounterPage({ session }: { session: Session }) {
       freeDelivery={freeDelivery}
       onFreeDelivery={setFreeDelivery}
       freeDeliveryEnabled={settings?.show_delivery_note ?? false}
+      wilaya={wilaya}
+      onWilaya={setWilaya}
+      customWilaya={customWilaya}
+      onCustomWilaya={setCustomWilaya}
+      deliveryAddress={deliveryAddress}
+      onDeliveryAddress={setDeliveryAddress}
       payment={payment}
       onPayment={setPayment}
       onCustomPayment={() => setCustomPaymentOpen(true)}
@@ -411,6 +425,12 @@ export function CounterPage({ session }: { session: Session }) {
             freeDelivery={freeDelivery}
             onFreeDelivery={setFreeDelivery}
             freeDeliveryEnabled={settings?.show_delivery_note ?? false}
+            wilaya={wilaya}
+            onWilaya={setWilaya}
+            customWilaya={customWilaya}
+            onCustomWilaya={setCustomWilaya}
+            deliveryAddress={deliveryAddress}
+            onDeliveryAddress={setDeliveryAddress}
             payment={payment}
             onPayment={setPayment}
             onCustomPayment={() => setCustomPaymentOpen(true)}
@@ -796,6 +816,12 @@ function CheckoutPanel({
   freeDelivery,
   onFreeDelivery,
   freeDeliveryEnabled,
+  wilaya,
+  onWilaya,
+  customWilaya,
+  onCustomWilaya,
+  deliveryAddress,
+  onDeliveryAddress,
   payment,
   onPayment,
   onCustomPayment,
@@ -818,6 +844,12 @@ function CheckoutPanel({
   freeDelivery: boolean
   onFreeDelivery: (value: boolean) => void
   freeDeliveryEnabled: boolean
+  wilaya: string
+  onWilaya: (value: string) => void
+  customWilaya: string
+  onCustomWilaya: (value: string) => void
+  deliveryAddress: string
+  onDeliveryAddress: (value: string) => void
   payment: PaymentSelection | null
   onPayment: (payment: PaymentSelection | null) => void
   onCustomPayment: () => void
@@ -926,6 +958,42 @@ function CheckoutPanel({
             <span>{t('counter.freeShipping')}</span>
           </label>
         )}
+        <div className="space-y-2">
+          <Label>{t('counter.wilaya')}</Label>
+          {wilaya === '__custom' ? (
+            <Input
+              dir="auto"
+              placeholder={t('counter.otherWilaya')}
+              value={customWilaya}
+              onChange={(e) => onCustomWilaya(e.target.value)}
+            />
+          ) : (
+            <Select value={wilaya} onValueChange={onWilaya}>
+              <SelectTrigger aria-label={t('counter.wilaya')}>
+                <SelectValue placeholder={t('counter.chooseWilaya')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t('counter.chooseWilaya')}</SelectItem>
+                {WILAYAS.map((w) => (
+                  <SelectItem key={w} value={w}>
+                    {w}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__custom">{t('counter.otherWilaya')}</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="counter-address">{t('counter.deliveryAddress')}</Label>
+          <Input
+            id="counter-address"
+            dir="auto"
+            placeholder={t('counter.deliveryAddressPlaceholder')}
+            value={deliveryAddress}
+            onChange={(e) => onDeliveryAddress(e.target.value)}
+          />
+        </div>
       </Card>
 
       <Card className="space-y-3 p-4">

@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] 58 wilayas constant, no duplicates
 - [ ] Counter checkout: wilaya select (presets + custom text) + address input

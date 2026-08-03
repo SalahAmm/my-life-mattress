@@ -246,6 +246,21 @@ describe('CounterPage redesign (ticket 02)', () => {
     expect(payload.freeDelivery).toBe(true)
   })
 
+  it('captures wilaya and delivery address on the sale', async () => {
+    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
+    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
+    renderCounter()
+    const user = await addVariant()
+    await user.click(await screen.findByLabelText(/Wilaya/))
+    await user.click(await screen.findByRole('option', { name: 'Alger' }))
+    await user.type(screen.getByLabelText('Adresse de livraison'), 'Rue des Frères, Bab Ezzouar')
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
+    const payload = vi.mocked(mockApi.sales.create).mock.calls[0][0] as NewSalePayload
+    expect(payload.wilaya).toBe('Alger')
+    expect(payload.deliveryAddress).toBe('Rue des Frères, Bab Ezzouar')
+  })
+
   it('Enregistrer carries the gold accent', async () => {
     renderCounter()
     await screen.findByRole('button', { name: 'Matelas' })

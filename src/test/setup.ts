@@ -30,4 +30,11 @@ if (typeof window !== 'undefined') {
     writable: true,
     value: ResizeObserverMock,
   })
+
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false
+    Element.prototype.setPointerCapture = () => {}
+    Element.prototype.releasePointerCapture = () => {}
+  }
+  Element.prototype.scrollIntoView = () => {}
 }
