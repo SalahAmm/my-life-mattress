@@ -11,6 +11,7 @@ import type {
   SaleWithDetails,
   Session,
   Supplier,
+  TopSeller,
 } from './types'
 
 export interface AuthStatus {
@@ -63,6 +64,7 @@ export interface ElectronAPI {
   products: {
     list(): Promise<CounterProduct[]>
     listFull(): Promise<ProductWithVariants[]>
+    topSellers(): Promise<TopSeller[]>
     create(input: NewProductInput): Promise<number>
     update(input: UpdateProductInput): Promise<void>
     deactivate(id: number): Promise<void>

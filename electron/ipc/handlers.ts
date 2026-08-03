@@ -9,7 +9,7 @@ import type { IpcResult } from '@shared/ipc'
 import type { AuthService } from '../auth/service'
 import { logError } from '../log'
 import { listActiveCategories } from '../db/queries/categories'
-import { listCounterProducts, createProduct, deactivateProduct, listProducts, updateProduct } from '../db/queries/products'
+import { listCounterProducts, createProduct, deactivateProduct, listProducts, listTopSellers, updateProduct } from '../db/queries/products'
 import { createSupplier, listSuppliers, setSupplierActive } from '../db/queries/suppliers'
 import {
   addPayment,
@@ -191,6 +191,11 @@ export function registerIpcHandlers(database: Database, authService: AuthService
   ipcMain.handle('products:list', wrap(async () => {
     requireSession(auth)
     return listCounterProducts(db)
+  }))
+
+  ipcMain.handle('products:topSellers', wrap(async () => {
+    requireSession(auth)
+    return listTopSellers(db, 6)
   }))
 
   ipcMain.handle('products:listFull', wrap(async () => {

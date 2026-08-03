@@ -237,14 +237,14 @@ describe('CounterPage', () => {
         name: 'Matelas Elite',
         category_id: 1,
         image_path: 'C:/data/products/p1.png',
-        variants: [{ id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false }],
+        variants: [{ id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 }],
       },
       {
         id: 2,
         name: 'Lit Sierra',
         category_id: 1,
         image_path: null,
-        variants: [{ id: 20, dimension: '', name: 'Sahara', price: 80000, out_of_stock: false }],
+        variants: [{ id: 20, dimension: '', name: 'Sahara', price: 80000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 }],
       },
     ])
     renderCounter()

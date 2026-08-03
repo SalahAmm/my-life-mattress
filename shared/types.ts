@@ -177,7 +177,17 @@ export interface CounterProduct {
     name: string | null
     price: number
     out_of_stock: boolean
+    low_stock: boolean
+    available_low: number | null
+    available_above: number | null
   }[]
+}
+
+export interface TopSeller {
+  id: number
+  name: string
+  image_path: string | null
+  units_sold: number
 }
 
 export interface NewVariantInput {

@@ -1,5 +1,5 @@
 import type { Database } from 'better-sqlite3'
-import type { CounterProduct, NewProductInput, ProductWithVariants } from '@shared/types'
+import type { CounterProduct, NewProductInput, ProductWithVariants, TopSeller } from '@shared/types'
 
 export function createProduct(db: Database, input: NewProductInput): number {
   const create = db.transaction(() => {
@@ -124,14 +124,41 @@ export function listCounterProducts(db: Database): CounterProduct[] {
     image_path: row.image_path,
     variants: variants
       .filter((v) => v.product_id === row.id)
-      .map((v) => ({
-        id: v.id,
-        dimension: v.dimension,
-        name: v.name,
-        price: v.price,
-        out_of_stock: v.quantity_on_hand <= 0,
-      })),
+      .map((v) => {
+        const out = v.quantity_on_hand <= 0
+        const threshold = v.low_stock_threshold > 0 ? v.low_stock_threshold : 3
+        const low = !out && v.quantity_on_hand <= threshold
+        return {
+          id: v.id,
+          dimension: v.dimension,
+          name: v.name,
+          price: v.price,
+          out_of_stock: out,
+          low_stock: low,
+          available_low: low ? v.quantity_on_hand : null,
+          available_above: !out && !low ? threshold : null,
+        }
+      }),
   }))
+}
+
+export function listTopSellers(db: Database, limit: number): TopSeller[] {
+  return db
+    .prepare(
+      `SELECT
+        p.id, p.name, p.image_path,
+        COALESCE(SUM(si.quantity), 0) AS units_sold
+       FROM products p
+       LEFT JOIN product_variants v ON v.product_id = p.id
+       LEFT JOIN sale_items si
+         ON si.product_variant_id = v.id
+         AND si.sale_id NOT IN (SELECT id FROM sales WHERE status = 'cancelled')
+       WHERE p.active = 1
+       GROUP BY p.id
+       ORDER BY units_sold DESC, p.name
+       LIMIT ?`,
+    )
+    .all(limit) as TopSeller[]
 }
 
 export function updateProduct(

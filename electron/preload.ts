@@ -22,6 +22,7 @@ const api: ElectronAPI = {
   products: {
     list: () => invoke('products:list'),
     listFull: () => invoke('products:listFull'),
+    topSellers: () => invoke('products:topSellers'),
     create: (input) => invoke('products:create', input),
     update: (input) => invoke('products:update', input),
     deactivate: (id) => invoke('products:deactivate', id),

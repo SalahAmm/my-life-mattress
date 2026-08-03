@@ -12,7 +12,9 @@ import {
 } from './products'
 import { createUser } from './users'
 import { restock } from './stock'
+import { createSale } from './sales'
 import type { NewProductInput } from '@shared/types'
+import { listTopSellers } from './products'
 
 function database() {
   return createDatabase(':memory:')
@@ -108,6 +110,92 @@ describe('products queries', () => {
     const counter = listCounterProducts(db)
     expect(counter[0].variants[0].name).toBe('Sahara')
     expect(counter[0].variants[0].dimension).toBe('')
+  })
+
+  it('counter variants carry employee-safe availability (low / plus que X / plus de seuil)', () => {
+    const db = database()
+    const productId = createProduct(db, {
+      name: 'Matelas',
+      categoryId: null,
+      supplierId: null,
+      variants: [
+        { dimension: '160x190', price: 45000, sku: null, initialStock: 8, lowStockThreshold: 2 },
+        { dimension: '180x200', price: 55000, sku: null, initialStock: 1, lowStockThreshold: 2 },
+        { dimension: '200x200', price: 65000, sku: null, initialStock: 0, lowStockThreshold: 2 },
+      ],
+    })
+    const counter = listCounterProducts(db).find((p) => p.id === productId)!
+    const [healthy, low, out] = counter.variants
+    expect(healthy.low_stock).toBe(false)
+    expect(healthy.available_low).toBeNull()
+    expect(healthy.available_above).toBe(2)
+    expect(low.low_stock).toBe(true)
+    expect(low.available_low).toBe(1)
+    expect(low.available_above).toBeNull()
+    expect(out.out_of_stock).toBe(true)
+    expect(out.available_low).toBeNull()
+    expect(out.available_above).toBeNull()
+  })
+
+  it('defaults the availability threshold to 3 when unset', () => {
+    const db = database()
+    const productId = createProduct(db, {
+      name: 'Matelas',
+      categoryId: null,
+      supplierId: null,
+      variants: [{ dimension: '160x190', price: 45000, sku: null, initialStock: 6, lowStockThreshold: 0 }],
+    })
+    const counter = listCounterProducts(db).find((p) => p.id === productId)!
+    expect(counter.variants[0].low_stock).toBe(false)
+    expect(counter.variants[0].available_above).toBe(3)
+  })
+
+  it('listTopSellers ranks products by units sold, excluding cancelled sales', () => {
+    const db = database()
+    const owner = createUser(db, { username: 'o', passwordHash: 'x', role: 'owner' })
+    const p1 = createProduct(db, {
+      name: 'Top Vendeur',
+      categoryId: null,
+      supplierId: null,
+      variants: [{ dimension: '160x190', price: 45000, sku: null, initialStock: 10, lowStockThreshold: 1 }],
+    })
+    const p2 = createProduct(db, {
+      name: 'Moyen',
+      categoryId: null,
+      supplierId: null,
+      variants: [{ dimension: '160x190', price: 30000, sku: null, initialStock: 10, lowStockThreshold: 1 }],
+    })
+    const p3 = createProduct(db, {
+      name: 'Faible',
+      categoryId: null,
+      supplierId: null,
+      variants: [{ dimension: '160x190', price: 20000, sku: null, initialStock: 10, lowStockThreshold: 1 }],
+    })
+    const variantOf = (productId: number) =>
+      (listProducts(db).find((p) => p.id === productId)!.variants[0].id)
+    const sell = (productId: number, qty: number, cancelled = false) => {
+      const saleId = createSale(db, {
+        createdBy: owner,
+        payload: {
+          customerName: 'C',
+          customerPhone: null,
+          wilaya: null,
+          deliveryAddress: null,
+          items: [{ productVariantId: variantOf(productId), quantity: qty, unitPriceAtSale: 0, customDescription: null }],
+          payment: null,
+        },
+      })
+      if (cancelled) {
+        db.prepare("UPDATE sales SET status = 'cancelled' WHERE id = ?").run(saleId)
+      }
+    }
+    sell(p1, 4)
+    sell(p2, 2)
+    sell(p3, 5, true)
+    const tops = listTopSellers(db, 6)
+    expect(tops.map((t) => t.id)).toEqual([p1, p2, p3])
+    expect(tops[0].units_sold).toBe(4)
+    expect(tops[2].units_sold).toBe(0)
   })
 
   it('updateProduct edits fields, updates variants in place and appends new ones', () => {

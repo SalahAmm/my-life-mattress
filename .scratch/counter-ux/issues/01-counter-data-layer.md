@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] products:topSellers returns top 6 by units sold
 - [ ] Counter variants expose low_stock / available_low / available_above (no raw qty)
