@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: variant name field`. Migration v2 adds `name` to product_variants; shared variantLabel (name → size → both); form field; counter/stock/receipt render the new label. Suite 167/167; typecheck clean.
 
 - [ ] Migration v2 adds `name` to product_variants (nullable) and makes dimension nullable
 - [ ] Product create accepts variant names; label logic unit-tested (name → size → both)
