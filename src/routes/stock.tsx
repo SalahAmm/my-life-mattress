@@ -20,8 +20,34 @@ import { PageHeader } from '@/components/management/page-header'
 import { EmptyState } from '@/components/management/empty-state'
 import { KpiCard } from '@/components/management/kpi-card'
 import { productImageUrl } from '@/lib/product-image'
+import { cn } from '@/lib/utils'
 
 type StockFilter = 'all' | 'in' | 'low' | 'out'
+
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'rounded-none border px-3 py-1.5 text-sm transition-colors',
+        active
+          ? 'border-primary bg-primary text-primary-foreground'
+          : 'border-border bg-card hover:bg-muted',
+      )}
+    >
+      {children}
+    </button>
+  )
+}
 
 function variantStatus(quantity: number, threshold: number): 'in' | 'low' | 'out' {
   if (quantity <= 0) return 'out'
@@ -36,6 +62,8 @@ export function StockPage() {
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
   const [filter, setFilter] = useState<StockFilter>('all')
   const [search, setSearch] = useState('')
+  const [selectedSupplier, setSelectedSupplier] = useState<number | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
 
   const { data: products = [] } = useQuery({
     queryKey: ['stock-products'],
@@ -80,13 +108,15 @@ export function StockPage() {
   const groups = useMemo(() => {
     const query = search.trim().toLowerCase()
     const matches = (p: ProductWithVariants) => {
+      if (selectedSupplier !== null && p.supplier_id !== selectedSupplier) return false
+      if (selectedCategory !== null && p.category_id !== selectedCategory) return false
       if (filter !== 'all' && !p.variants.some((v) => variantStatus(v.quantity_on_hand, v.low_stock_threshold) === filter)) {
         return false
       }
       if (!query) return true
       if (p.name.toLowerCase().includes(query)) return true
       if ((p.supplier_name ?? '').toLowerCase().includes(query)) return true
-      return p.variants.some((v) => v.dimension.toLowerCase().includes(query))
+      return p.variants.some((v) => v.dimension.toLowerCase().includes(query) || (v.name ?? '').toLowerCase().includes(query))
     }
     const filtered = products.filter(matches)
     const bySupplier = new Map<number | null, ProductWithVariants[]>()
@@ -99,7 +129,7 @@ export function StockPage() {
       .filter((g) => g.products.length > 0)
     const unassigned = bySupplier.get(null) ?? []
     return { supplierGroups, unassigned }
-  }, [products, suppliers, filter, search])
+  }, [products, suppliers, filter, search, selectedSupplier, selectedCategory])
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -146,11 +176,39 @@ export function StockPage() {
           <Plus />
           {t('stock.addSupplier')}
         </Button>
-        {(filter !== 'all' || search) && (
-          <Button variant="ghost" onClick={() => { setFilter('all'); setSearch('') }}>
+        {(filter !== 'all' || search || selectedSupplier !== null || selectedCategory !== null) && (
+          <Button variant="ghost" onClick={() => { setFilter('all'); setSearch(''); setSelectedSupplier(null); setSelectedCategory(null) }}>
             {t('stock.all')}
           </Button>
         )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Chip active={selectedSupplier === null} onClick={() => setSelectedSupplier(null)}>
+          {t('stock.allSuppliers')}
+        </Chip>
+        {suppliers.map((s) => (
+          <Chip
+            key={s.id}
+            active={selectedSupplier === s.id}
+            onClick={() => setSelectedSupplier(selectedSupplier === s.id ? null : s.id)}
+          >
+            {s.name}
+          </Chip>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Chip active={selectedCategory === null} onClick={() => setSelectedCategory(null)}>
+          {t('stock.allCategories')}
+        </Chip>
+        {categories.map((c) => (
+          <Chip
+            key={c.id}
+            active={selectedCategory === c.id}
+            onClick={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
+          >
+            {c.name}
+          </Chip>
+        ))}
       </div>
       {products.length === 0 ? (
         <Card className="flex flex-1 flex-col items-center justify-center">

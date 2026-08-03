@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Supplier chip row + category chip row render from live data
 - [ ] Chips toggle independently and combine (supplier alone, type alone, both, + state filter, + search)

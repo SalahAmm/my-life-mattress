@@ -91,7 +91,7 @@ function renderStock() {
 describe('StockPage (ticket 08)', () => {
   it('shows KPI cards with live variant counts', async () => {
     renderStock()
-    expect(await screen.findByText('Rafik')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Rafik' })).toBeInTheDocument()
     expect(screen.getAllByText('En Stock').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Stock Faible').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Rupture').length).toBeGreaterThanOrEqual(1)
@@ -99,7 +99,7 @@ describe('StockPage (ticket 08)', () => {
 
   it('clicking the Rupture KPI filters the list to zero-stock variants', async () => {
     renderStock()
-    await screen.findByText('Rafik')
+    await screen.findByRole('heading', { name: 'Rafik' })
     const user = userEvent.setup()
     await user.click(screen.getAllByText('Rupture')[0])
     expect(screen.getByText('200x200')).toBeInTheDocument()
@@ -108,9 +108,9 @@ describe('StockPage (ticket 08)', () => {
 
   it('groups products under supplier headers with category badges', async () => {
     renderStock()
-    await screen.findByText('Rafik')
+    await screen.findByRole('heading', { name: 'Rafik' })
     expect(screen.getByText('Matelas Elite')).toBeInTheDocument()
-    expect(screen.getByText('Matelas')).toBeInTheDocument()
+    expect(screen.getAllByText('Matelas').length).toBeGreaterThanOrEqual(1)
   })
 
   it('places supplier-less products in the Sans fournisseur group', async () => {
@@ -121,9 +121,9 @@ describe('StockPage (ticket 08)', () => {
 
   it('removing a supplier calls the owner-only setActive IPC', async () => {
     renderStock()
-    await screen.findByText('Rafik')
+    await screen.findByRole('heading', { name: 'Rafik' })
     const user = userEvent.setup()
-    const group = screen.getByText('Rafik').closest('div') as HTMLElement
+    const group = screen.getByRole('heading', { name: 'Rafik' }).closest('div') as HTMLElement
     const removeButton = within(group).getByLabelText('Supprimer le fournisseur')
     await user.click(removeButton)
     await user.click(await screen.findByRole('button', { name: 'Supprimer' }))
@@ -132,7 +132,46 @@ describe('StockPage (ticket 08)', () => {
 
   it('supplier-less group header exists alongside supplier groups', async () => {
     renderStock()
-    expect(await screen.findByText('Rafik')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Rafik' })).toBeInTheDocument()
     expect(screen.getByText('Sans fournisseur')).toBeInTheDocument()
+  })
+
+  it('clicking a supplier chip filters to that supplier only', async () => {
+    renderStock()
+    await screen.findByRole('heading', { name: 'Rafik' })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Rafik/ }))
+    expect(screen.getByText('Matelas Elite')).toBeInTheDocument()
+    expect(screen.queryByText('Oreiller Confort')).not.toBeInTheDocument()
+    expect(screen.queryByText('Sans fournisseur')).not.toBeInTheDocument()
+  })
+
+  it('supplier and category chips combine', async () => {
+    renderStock()
+    await screen.findByRole('heading', { name: 'Rafik' })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Rafik/ }))
+    await user.click(screen.getByRole('button', { name: /Matelas/ }))
+    expect(screen.getByText('Matelas Elite')).toBeInTheDocument()
+  })
+
+  it('clicking a chip again un-toggles it', async () => {
+    renderStock()
+    await screen.findByRole('heading', { name: 'Rafik' })
+    const user = userEvent.setup()
+    const chip = screen.getByRole('button', { name: /Rafik/ })
+    await user.click(chip)
+    expect(screen.queryByText('Oreiller Confort')).not.toBeInTheDocument()
+    await user.click(chip)
+    expect(screen.getByText('Oreiller Confort')).toBeInTheDocument()
+  })
+
+  it('Tous les fournisseurs resets the supplier row', async () => {
+    renderStock()
+    await screen.findByRole('heading', { name: 'Rafik' })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Rafik/ }))
+    await user.click(screen.getByRole('button', { name: /Tous les fournisseurs/ }))
+    expect(screen.getByText('Oreiller Confort')).toBeInTheDocument()
   })
 })

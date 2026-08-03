@@ -174,6 +174,8 @@
     "remove": "حذف",
     "searchPlaceholder": "ابحث عن منتج أو مقاس أو مورّد…",
     "all": "كل المخزون",
+    "allSuppliers": "كل المورّدين",
+    "allCategories": "كل الفئات",
     "saved": "تمت إضافة المنتج",
     "noProducts": "لا توجد منتجات",
     "noProductsHint": "ابدأ بإضافة أول منتج لك.",
