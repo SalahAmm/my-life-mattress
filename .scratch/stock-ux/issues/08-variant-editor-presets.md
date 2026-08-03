@@ -4,7 +4,11 @@
 
 **Blocked by:** 07 — Dimension presets
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: variant editor preset chips + quick-add. Chips fill the first empty dimension or append a row; the + saves the typed dimension as a preset via settings:updateReceipt. Suite 186/186; typecheck clean.
 
 - [ ] Row 1 dim+name, Row 2 price+stock+threshold per variant block
 - [ ] Chips from settings fill the dimension field on tap
