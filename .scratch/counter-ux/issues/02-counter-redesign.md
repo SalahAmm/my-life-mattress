@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Counter data layer
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Category tiles → product grid → chooser dialog with OK flow works end-to-end
 - [ ] Color/size rows filter each other; custom entry available in the chooser

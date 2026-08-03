@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: counter data layer. listTopSellers excludes cancelled sales; counter variants carry low_stock/available_low/available_above (threshold default 3); products:topSellers IPC. Suite 192/192; typecheck clean.
 
 - [ ] products:topSellers returns top 6 by units sold
 - [ ] Counter variants expose low_stock / available_low / available_above (no raw qty)
