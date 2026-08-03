@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: stock filter chips`. Supplier + category chip rows, independent toggle/un-toggle, reset buttons, combined with KPI state filter and search (incl. variant names). Suite 175/175; typecheck clean.
 
 - [ ] Supplier chip row + category chip row render from live data
 - [ ] Chips toggle independently and combine (supplier alone, type alone, both, + state filter, + search)
