@@ -33,10 +33,11 @@ const NAV_ITEMS: NavItem[] = [
 
 export function AppShell({ session }: { session: Session }) {
   const items = NAV_ITEMS.filter((item) => item.roles.includes(session.role))
+  const { language } = useAppLanguage()
 
   return (
     <SidebarProvider>
-      <AppSidebar session={session} items={items} />
+      <AppSidebar session={session} items={items} side={language === 'ar' ? 'right' : 'left'} />
       <SidebarInset className="bg-background">
         <main className="h-screen overflow-auto p-6">
           <Routes>
@@ -68,7 +69,15 @@ export function AppShell({ session }: { session: Session }) {
   )
 }
 
-function AppSidebar({ session, items }: { session: Session; items: NavItem[] }) {
+function AppSidebar({
+  session,
+  items,
+  side,
+}: {
+  session: Session
+  items: NavItem[]
+  side: 'left' | 'right'
+}) {
   const { t } = useTranslation()
   const { theme, toggleTheme } = useTheme()
   const { language, toggleLanguage } = useAppLanguage()
@@ -80,7 +89,7 @@ function AppSidebar({ session, items }: { session: Session; items: NavItem[] }) 
   }
 
   return (
-    <Sidebar collapsible="icon" className="bg-sidebar text-sidebar-foreground">
+    <Sidebar side={side} collapsible="icon" className="bg-sidebar text-sidebar-foreground">
       <SidebarHeader>
         <div className="flex items-center gap-3 px-2 py-1">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gold">

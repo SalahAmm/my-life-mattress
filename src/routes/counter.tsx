@@ -256,7 +256,7 @@ export function CounterPage({ session }: { session: Session }) {
               </Button>
             ))}
           </div>
-          <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-3 gap-3 overflow-auto pr-1 xl:grid-cols-4">
+          <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-3 gap-3 overflow-auto pe-1 xl:grid-cols-4">
             {filteredProducts.length === 0 && (
               <div className="col-span-full flex flex-col items-center gap-2 py-16 text-center">
                 <ShoppingCart className="size-10 text-muted-foreground" />

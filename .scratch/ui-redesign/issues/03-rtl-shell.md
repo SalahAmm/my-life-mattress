@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Theme system and brand tokens
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Switching to Arabic moves the sidebar to the right and mirrors layouts
 - [ ] No LTR flash on load; html lang/dir correct before render

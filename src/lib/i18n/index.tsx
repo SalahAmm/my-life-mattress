@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { Direction } from 'radix-ui'
 import fr from './fr.json'
 import ar from './ar.json'
 
@@ -23,6 +24,11 @@ void i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 })
 
+const initialLanguage = detectLanguage()
+document.documentElement.lang = initialLanguage
+document.documentElement.dir = initialLanguage === 'ar' ? 'rtl' : 'ltr'
+document.title = initialLanguage === 'ar' ? 'ماي لايف ماتراس' : 'My Life Mattress'
+
 interface I18nContextValue {
   language: Language
   setLanguage: (lang: Language) => void
@@ -38,6 +44,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'
     document.title = language === 'ar' ? 'ماي لايف ماتراس' : 'My Life Mattress'
+    void i18n.changeLanguage(language)
   }, [language])
 
   const setLanguage = (lang: Language) => {
@@ -52,7 +59,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     toggleLanguage: () => setLanguage(language === 'fr' ? 'ar' : 'fr'),
   }
 
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+  return (
+    <Direction.DirectionProvider dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+    </Direction.DirectionProvider>
+  )
 }
 
 export function useAppLanguage(): I18nContextValue {

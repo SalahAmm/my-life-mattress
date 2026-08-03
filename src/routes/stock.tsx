@@ -59,7 +59,7 @@ export function StockPage() {
           <p className="text-sm">{t('stock.noProductsHint')}</p>
         </Card>
       ) : (
-        <div className="min-h-0 flex-1 space-y-3 overflow-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-3 overflow-auto pe-1">
           {products.map((product) => (
             <Card key={product.id}>
               <CardContent className="space-y-2 p-4">
