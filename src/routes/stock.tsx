@@ -478,6 +478,10 @@ function AddProductDialog({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const editing = Boolean(initial)
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.settings.get(),
+  })
   const [name, setName] = useState(initial?.name ?? '')
   const [categoryId, setCategoryId] = useState<string>(initial?.category_id ? String(initial.category_id) : 'none')
   const [supplierId, setSupplierId] = useState<string>(initial?.supplier_id ? String(initial.supplier_id) : 'none')
@@ -572,6 +576,36 @@ function AddProductDialog({
     setVariants((prev) => prev.map((v, i) => (i === index ? { ...v, ...patch } : v)))
   }
 
+  const applyPreset = (dimension: string) => {
+    setVariants((prev) => {
+      const emptyIndex = prev.findIndex((v) => !v.dimension.trim())
+      if (emptyIndex >= 0) {
+        return prev.map((v, i) => (i === emptyIndex ? { ...v, dimension } : v))
+      }
+      return [...prev, { dimension, name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }]
+    })
+  }
+
+  const quickAddPreset = () => {
+    if (!settings) return
+    const dimension = variants.find((v) => v.dimension.trim())?.dimension.trim()
+    if (!dimension) return
+    if (settings.dimension_presets.includes(dimension)) return
+    void api.settings
+      .updateReceipt({
+        storeName: settings.store_name,
+        defaultDepositPercentages: settings.default_deposit_percentages,
+        showDeliveryNote: settings.show_delivery_note,
+        showPhoneOnReceipt: settings.show_phone_on_receipt,
+        showQuantityOnReceipt: settings.show_quantity_on_receipt,
+        dimensionPresets: [...settings.dimension_presets, dimension],
+      })
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: ['settings'] })
+        toast.success(t('stock.saved'))
+      })
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
@@ -656,6 +690,29 @@ function AddProductDialog({
             </div>
           </div>
           <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground">{t('stock.dimensionPresets')}</Label>
+              {(settings?.dimension_presets ?? []).map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  className="rounded-none border border-border bg-card px-2.5 py-1 text-sm transition-colors hover:bg-muted"
+                  dir="ltr"
+                >
+                  {preset}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={quickAddPreset}
+                className="rounded-none border border-dashed border-primary/40 px-2 py-1 text-primary transition-colors hover:bg-primary/5"
+                aria-label={t('stock.quickAddPreset')}
+                title={t('stock.quickAddPreset')}
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </div>
             <div className="flex items-center justify-between">
               <Label>{t('stock.variants')}</Label>
               <Button size="sm" variant="outline" onClick={() => setVariants((prev) => [...prev, { dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }])}>

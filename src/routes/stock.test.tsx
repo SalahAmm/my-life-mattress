@@ -58,12 +58,13 @@ const mockApi = {
       store_name: 'MLM',
       logo_path: null,
       default_deposit_percentages: [30],
+      dimension_presets: ['90x190', '160x190', '180x200'],
       show_delivery_note: true,
       show_phone_on_receipt: true,
       show_quantity_on_receipt: true,
       updated_at: '',
     }),
-    updateReceipt: vi.fn(),
+    updateReceipt: vi.fn().mockResolvedValue(undefined),
     uploadLogo: vi.fn(),
   },
 } as unknown as ElectronAPI
@@ -191,5 +192,29 @@ describe('StockPage (ticket 08)', () => {
     const input = vi.mocked(mockApi.products.update).mock.calls.at(-1)![0] as { id: number; name: string }
     expect(input.id).toBe(1)
     expect(input.name).toBe('Matelas Elite V2')
+  })
+
+  it('dimension preset chips fill the first empty variant dimension', async () => {
+    renderStock()
+    await screen.findByRole('heading', { name: 'Rafik' })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Ajouter un produit/ }))
+    await user.click(await screen.findByRole('button', { name: '160x190' }))
+    const dimensionInput = screen.getByPlaceholderText('Ex. : 160×190') as HTMLInputElement
+    expect(dimensionInput.value).toBe('160x190')
+  })
+
+  it('the quick-add + saves the typed dimension as a new preset', async () => {
+    renderStock()
+    await screen.findByRole('heading', { name: 'Rafik' })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Ajouter un produit/ }))
+    await user.type(await screen.findByPlaceholderText('Ex. : 160×190'), '200x200')
+    await user.click(screen.getByLabelText('Enregistrer comme préréglage'))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const input = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      dimensionPresets: string[]
+    }
+    expect(input.dimensionPresets).toContain('200x200')
   })
 })

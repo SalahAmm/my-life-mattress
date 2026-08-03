@@ -4,7 +4,7 @@
 
 **Blocked by:** 07 — Dimension presets
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Row 1 dim+name, Row 2 price+stock+threshold per variant block
 - [ ] Chips from settings fill the dimension field on tap

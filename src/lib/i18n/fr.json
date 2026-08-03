@@ -164,6 +164,7 @@
     "threshold": "Seuil d'alerte",
     "addVariant": "Ajouter une variante",
     "variant": "Variante",
+    "quickAddPreset": "Enregistrer comme préréglage",
     "removeVariant": "Retirer",
     "save": "Enregistrer le produit",
     "deactivate": "Désactiver",
