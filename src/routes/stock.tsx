@@ -1,51 +1,87 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Copy, ImagePlus, Loader2, Package, Pencil, Plus, Trash2, User } from 'lucide-react'
+import { Copy, ImagePlus, Loader2, Package, Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDzd } from '@shared/money'
 import { variantLabel } from '@shared/variants'
 import type { NewProductInput, NewVariantInput, ProductWithVariants } from '@shared/types'
 import { api } from '@/lib/ipc-client'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { PageHeader } from '@/components/management/page-header'
 import { EmptyState } from '@/components/management/empty-state'
 import { KpiCard } from '@/components/management/kpi-card'
 import { productImageUrl } from '@/lib/product-image'
 import { cn } from '@/lib/utils'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 type StockFilter = 'all' | 'in' | 'low' | 'out'
 
 function Chip({
   active,
   onClick,
+  onRemove,
+  removeLabel,
   children,
 }: {
   active: boolean
   onClick: () => void
+  onRemove?: () => void
+  removeLabel?: string
   children: ReactNode
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <span
       className={cn(
-        'rounded-none border px-3 py-1.5 text-sm transition-colors',
-        active
-          ? 'border-primary bg-primary text-primary-foreground'
-          : 'border-border bg-card hover:bg-muted',
+        'inline-flex items-center rounded-none border transition-colors',
+        active ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card',
       )}
     >
-      {children}
-    </button>
+      <button type="button" onClick={onClick} className="px-3 py-1.5 text-sm hover:opacity-80">
+        {children}
+      </button>
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={removeLabel}
+          className="px-1.5 py-1.5 text-xs opacity-60 hover:opacity-100"
+        >
+          <Trash2 className="size-3" />
+        </button>
+      )}
+    </span>
+  )
+}
+
+function SortableHead({
+  label,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  dir: 'asc' | 'desc'
+  onClick: () => void
+}) {
+  return (
+    <TableHead>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn('inline-flex items-center gap-1 font-semibold', active && 'text-primary')}
+      >
+        {label}
+        {active && <span dir="ltr">{dir === 'asc' ? '↑' : '↓'}</span>}
+      </button>
+    </TableHead>
   )
 }
 
@@ -66,6 +102,8 @@ export function StockPage() {
   const [search, setSearch] = useState('')
   const [selectedSupplier, setSelectedSupplier] = useState<number | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [sortKey, setSortKey] = useState<'product' | 'price' | 'stock' | 'supplier'>('product')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const { data: products = [] } = useQuery({
     queryKey: ['stock-products'],
@@ -107,31 +145,47 @@ export function StockPage() {
     }
   }, [products])
 
-  const groups = useMemo(() => {
+  const rows = useMemo(() => {
     const query = search.trim().toLowerCase()
     const matches = (p: ProductWithVariants) => {
       if (selectedSupplier !== null && p.supplier_id !== selectedSupplier) return false
       if (selectedCategory !== null && p.category_id !== selectedCategory) return false
-      if (filter !== 'all' && !p.variants.some((v) => variantStatus(v.quantity_on_hand, v.low_stock_threshold) === filter)) {
-        return false
-      }
       if (!query) return true
       if (p.name.toLowerCase().includes(query)) return true
       if ((p.supplier_name ?? '').toLowerCase().includes(query)) return true
       return p.variants.some((v) => v.dimension.toLowerCase().includes(query) || (v.name ?? '').toLowerCase().includes(query))
     }
-    const filtered = products.filter(matches)
-    const bySupplier = new Map<number | null, ProductWithVariants[]>()
-    for (const product of filtered) {
-      const key = product.supplier_id
-      bySupplier.set(key, [...(bySupplier.get(key) ?? []), product])
+    const flat = products
+      .filter(matches)
+      .flatMap((product) =>
+        product.variants
+          .filter((v) => filter === 'all' || variantStatus(v.quantity_on_hand, v.low_stock_threshold) === filter)
+          .map((variant) => ({ product, variant })),
+      )
+    const sorted = [...flat].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1
+      switch (sortKey) {
+        case 'product':
+          return a.product.name.localeCompare(b.product.name) * dir
+        case 'price':
+          return (a.variant.price - b.variant.price) * dir
+        case 'stock':
+          return (a.variant.quantity_on_hand - b.variant.quantity_on_hand) * dir
+        case 'supplier':
+          return (a.product.supplier_name ?? '').localeCompare(b.product.supplier_name ?? '') * dir
+      }
+    })
+    return sorted
+  }, [products, filter, search, selectedSupplier, selectedCategory, sortKey, sortDir])
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
     }
-    const supplierGroups = suppliers
-      .map((s) => ({ id: s.id, name: s.name, products: bySupplier.get(s.id) ?? [] }))
-      .filter((g) => g.products.length > 0)
-    const unassigned = bySupplier.get(null) ?? []
-    return { supplierGroups, unassigned }
-  }, [products, suppliers, filter, search, selectedSupplier, selectedCategory])
+  }
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -198,6 +252,11 @@ export function StockPage() {
             key={s.id}
             active={selectedSupplier === s.id}
             onClick={() => setSelectedSupplier(selectedSupplier === s.id ? null : s.id)}
+            onRemove={() => {
+              setSelectedSupplier(null)
+              removeSupplierMutation.mutate(s.id)
+            }}
+            removeLabel={t('stock.removeSupplier')}
           >
             {s.name}
           </Chip>
@@ -222,53 +281,95 @@ export function StockPage() {
           <EmptyState icon={Package} title={t('stock.noProducts')} hint={t('stock.noProductsHint')} />
         </Card>
       ) : (
-        <div className="min-h-0 flex-1 space-y-4 overflow-auto pe-1">
-          {groups.supplierGroups.map((group) => (
-            <SupplierGroup
-              key={group.id}
-              name={group.name}
-              products={group.products}
-              filter={filter}
-              onDeactivateSupplier={() => removeSupplierMutation.mutate(group.id)}
-              onDeactivateProduct={(id) => deactivateMutation.mutate(id)}
-              onEditProduct={(product) => {
-                setEditingProduct(product)
-                setCopyProduct(null)
-                setDialogOpen(true)
-              }}
-              onDuplicateProduct={(product) => {
-                setEditingProduct(null)
-                setCopyProduct(product)
-                setDialogOpen(true)
-              }}
-              deactivateLabel={t('stock.removeSupplier')}
-              deactivateTitle={t('stock.removeSupplierConfirm')}
-              deactivateHint={t('stock.removeSupplierConfirmHint')}
-            />
-          ))}
-          {groups.unassigned.length > 0 && (
-            <SupplierGroup
-              key="none"
-              name={t('stock.withoutSupplier')}
-              products={groups.unassigned}
-              filter={filter}
-              onDeactivateSupplier={undefined}
-              onDeactivateProduct={(id) => deactivateMutation.mutate(id)}
-              onEditProduct={(product) => {
-                setEditingProduct(product)
-                setCopyProduct(null)
-                setDialogOpen(true)
-              }}
-              onDuplicateProduct={(product) => {
-                setEditingProduct(null)
-                setCopyProduct(product)
-                setDialogOpen(true)
-              }}
-              deactivateLabel=""
-              deactivateTitle=""
-              deactivateHint=""
-            />
-          )}
+        <div className="flex min-h-0 flex-1 flex-col border bg-card">
+          <div className="min-h-0 flex-1 overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card">
+                <TableRow>
+                  <TableHead className="w-14"></TableHead>
+                  <SortableHead label={t('stock.product')} active={sortKey === 'product'} dir={sortDir} onClick={() => toggleSort('product')} />
+                  <TableHead>{t('stock.category')}</TableHead>
+                  <SortableHead label={t('stock.supplier')} active={sortKey === 'supplier'} dir={sortDir} onClick={() => toggleSort('supplier')} />
+                  <TableHead>{t('stock.variant')}</TableHead>
+                  <SortableHead label={t('stock.price')} active={sortKey === 'price'} dir={sortDir} onClick={() => toggleSort('price')} />
+                  <SortableHead label={t('stock.stock')} active={sortKey === 'stock'} dir={sortDir} onClick={() => toggleSort('stock')} />
+                  <TableHead className="text-end">{t('stock.actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map(({ product, variant }) => (
+                  <TableRow key={variant.id}>
+                    <TableCell>
+                      {productImageUrl(product.image_path) ? (
+                        <img
+                          src={productImageUrl(product.image_path)!}
+                          alt={product.name}
+                          className="size-10 rounded-none border object-cover"
+                        />
+                      ) : (
+                        <span className="flex size-10 items-center justify-center rounded-none border bg-muted text-sm font-bold text-muted-foreground">
+                          {product.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium" dir="auto">
+                      {product.name}
+                    </TableCell>
+                    <TableCell>{product.category_name ?? '—'}</TableCell>
+                    <TableCell dir="auto">{product.supplier_name ?? '—'}</TableCell>
+                    <TableCell dir="auto">{variantLabel(variant.name, variant.dimension)}</TableCell>
+                    <TableCell dir="ltr">{formatDzd(variant.price)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <StockBadge quantity={variant.quantity_on_hand} threshold={variant.low_stock_threshold} />
+                        <span className="font-semibold" dir="ltr">
+                          {variant.quantity_on_hand}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-end">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          aria-label={t('stock.edit')}
+                          onClick={() => {
+                            setEditingProduct(product)
+                            setCopyProduct(null)
+                            setDialogOpen(true)
+                          }}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          aria-label={t('stock.duplicate')}
+                          onClick={() => {
+                            setEditingProduct(null)
+                            setCopyProduct(product)
+                            setDialogOpen(true)
+                          }}
+                        >
+                          <Copy className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-destructive"
+                          onClick={() => deactivateMutation.mutate(product.id)}
+                        >
+                          {t('stock.deactivate')}
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
       <AddProductDialog
@@ -281,152 +382,6 @@ export function StockPage() {
         suppliers={suppliers.map((s) => ({ id: s.id, name: s.name }))}
       />
       <AddSupplierDialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen} />
-    </div>
-  )
-}
-
-function SupplierGroup({
-  name,
-  products,
-  filter,
-  onDeactivateSupplier,
-  onDeactivateProduct,
-  onEditProduct,
-  onDuplicateProduct,
-  deactivateLabel,
-  deactivateTitle,
-  deactivateHint,
-}: {
-  name: string
-  products: ProductWithVariants[]
-  filter: StockFilter
-  onDeactivateSupplier?: () => void
-  onDeactivateProduct: (id: number) => void
-  onEditProduct: (product: ProductWithVariants) => void
-  onDuplicateProduct: (product: ProductWithVariants) => void
-  deactivateLabel: string
-  deactivateTitle: string
-  deactivateHint: string
-}) {
-  const { t } = useTranslation()
-  const visibleProducts = products
-    .map((product) => ({
-      ...product,
-      variants:
-        filter === 'all'
-          ? product.variants
-          : product.variants.filter((v) => variantStatus(v.quantity_on_hand, v.low_stock_threshold) === filter),
-    }))
-    .filter((product) => product.variants.length > 0)
-  return (
-    <div>
-      <div className="mb-2 flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center bg-primary/10 text-primary">
-          <User className="size-4" />
-        </span>
-        <h2 className="font-bold" dir="auto">
-          {name}
-        </h2>
-        <Badge variant="secondary">{products.length}</Badge>
-        {onDeactivateSupplier && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="ms-auto size-7 text-destructive" aria-label={deactivateLabel}>
-                <Trash2 className="size-3.5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{deactivateTitle}</AlertDialogTitle>
-                <AlertDialogDescription>{deactivateHint}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={onDeactivateSupplier}>{t('stock.remove')}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </div>
-      <div className="space-y-3">
-        {visibleProducts.map((product) => (
-          <Card key={product.id}>
-            <CardContent className="space-y-2 p-4">
-              <div className="flex items-center gap-2">
-                {productImageUrl(product.image_path) ? (
-                  <img
-                    src={productImageUrl(product.image_path)!}
-                    alt={product.name}
-                    className="size-16 shrink-0 rounded-none border object-cover"
-                  />
-                ) : (
-                  <span className="flex size-16 shrink-0 items-center justify-center rounded-none border bg-muted text-lg font-bold text-muted-foreground">
-                    {product.name.charAt(0).toUpperCase()}
-                  </span>
-                )}
-                <p className="font-semibold" dir="auto">
-                  {product.name}
-                </p>
-                {product.category_name && <Badge variant="secondary">{product.category_name}</Badge>}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ms-auto size-7"
-                  aria-label={t('stock.edit')}
-                  onClick={() => onEditProduct(product)}
-                >
-                  <Pencil className="size-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7"
-                  aria-label={t('stock.duplicate')}
-                  onClick={() => onDuplicateProduct(product)}
-                >
-                  <Copy className="size-3.5" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="ms-auto text-destructive">
-                      {t('stock.deactivate')}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t('stock.deactivateConfirm')}</AlertDialogTitle>
-                      <AlertDialogDescription>{t('stock.deactivateConfirmHint')}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDeactivateProduct(product.id)}>
-                        {t('stock.deactivate')}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-              <Separator />
-              <div className="space-y-1.5">
-                {product.variants.map((variant) => (
-                  <div key={variant.id} className="flex flex-wrap items-center gap-3 text-sm">
-                    <span className="w-28 font-medium" dir="auto">
-                      {variantLabel(variant.name, variant.dimension)}
-                    </span>
-                    <span className="w-28 text-muted-foreground" dir="ltr">
-                      {formatDzd(variant.price)}
-                    </span>
-                    <StockBadge quantity={variant.quantity_on_hand} threshold={variant.low_stock_threshold} />
-                    <span className="w-16 text-end font-semibold" dir="ltr">
-                      {variant.quantity_on_hand}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   )
 }

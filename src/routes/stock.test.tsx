@@ -92,7 +92,7 @@ function renderStock() {
 describe('StockPage (ticket 08)', () => {
   it('shows KPI cards with live variant counts', async () => {
     renderStock()
-    expect(await screen.findByRole('heading', { name: 'Rafik' })).toBeInTheDocument()
+    expect((await screen.findAllByText('Matelas Elite')).length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('En Stock').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Stock Faible').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Rupture').length).toBeGreaterThanOrEqual(1)
@@ -100,65 +100,100 @@ describe('StockPage (ticket 08)', () => {
 
   it('clicking the Rupture KPI filters the list to zero-stock variants', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     await user.click(screen.getAllByText('Rupture')[0])
     expect(screen.getByText('200x200')).toBeInTheDocument()
     expect(screen.queryByText('160x190')).not.toBeInTheDocument()
   })
 
-  it('groups products under supplier headers with category badges', async () => {
+  it('renders one row per variant with product, category, supplier and stock columns', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
-    expect(screen.getByText('Matelas Elite')).toBeInTheDocument()
+    expect((await screen.findAllByText('Matelas Elite')).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Rafik').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Matelas').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('160x190').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('180x200').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('200x200').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Oreiller Confort').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('places supplier-less products in the Sans fournisseur group', async () => {
+  it('supplier-less products show a dash in the supplier column', async () => {
     renderStock()
-    expect(await screen.findByText('Sans fournisseur')).toBeInTheDocument()
-    expect(screen.getByText('Oreiller Confort')).toBeInTheDocument()
+    await screen.findByText('Oreiller Confort')
+    const row = screen.getByText('Oreiller Confort').closest('tr') as HTMLElement
+    const supplierCell = within(row).getAllByRole('cell').find((cell) => cell.textContent === '—')
+    expect(supplierCell).toBeDefined()
+  })
+
+  it('sorts by stock quantity when the Stock header is clicked', async () => {
+    renderStock()
+    await screen.findAllByText('Matelas Elite')
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('columnheader', { name: /Stock/ }))
+    const cells = [...document.querySelectorAll('tbody tr')].map((row) =>
+      (row as HTMLElement).querySelectorAll('td')[5]?.textContent?.trim(),
+    )
+    expect(cells[0]).toMatch(/0/)
+    await user.click(screen.getByRole('columnheader', { name: /Stock/ }))
+    const descCells = [...document.querySelectorAll('tbody tr')].map((row) =>
+      (row as HTMLElement).querySelectorAll('td')[5]?.textContent?.trim(),
+    )
+    expect(descCells[0]).toMatch(/4/)
+  })
+
+  it('sorting by product name orders rows alphabetically', async () => {
+    renderStock()
+    await screen.findAllByText('Matelas Elite')
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('columnheader', { name: /Produit/ }))
+    const names = [...document.querySelectorAll('tbody tr')].map((row) =>
+      (row as HTMLElement).querySelectorAll('td')[1]?.textContent?.trim(),
+    )
+    expect(names[0]).toContain('Matelas Elite')
+    expect(names[names.length - 1]).toContain('Oreiller Confort')
+  })
+
+  it('rows expose edit, duplicate and deactivate actions', async () => {
+    renderStock()
+    await screen.findAllByText('Matelas Elite')
+    const row = screen.getByText('160x190').closest('tr') as HTMLElement
+    expect(within(row).getByLabelText('Modifier')).toBeInTheDocument()
+    expect(within(row).getByLabelText('Dupliquer')).toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: /Désactiver/ })).toBeInTheDocument()
   })
 
   it('removing a supplier calls the owner-only setActive IPC', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
-    const group = screen.getByRole('heading', { name: 'Rafik' }).closest('div') as HTMLElement
-    const removeButton = within(group).getByLabelText('Supprimer le fournisseur')
-    await user.click(removeButton)
-    await user.click(await screen.findByRole('button', { name: 'Supprimer' }))
+    const chip = screen.getByRole('button', { name: /Rafik/ }).closest('span') as HTMLElement
+    await user.click(within(chip).getByLabelText('Supprimer le fournisseur'))
     await waitFor(() => expect(mockApi.suppliers.setActive).toHaveBeenCalledWith({ id: 1, active: false }))
-  })
-
-  it('supplier-less group header exists alongside supplier groups', async () => {
-    renderStock()
-    expect(await screen.findByRole('heading', { name: 'Rafik' })).toBeInTheDocument()
-    expect(screen.getByText('Sans fournisseur')).toBeInTheDocument()
   })
 
   it('clicking a supplier chip filters to that supplier only', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Rafik/ }))
-    expect(screen.getByText('Matelas Elite')).toBeInTheDocument()
+    expect(screen.getAllByText('Matelas Elite').length).toBeGreaterThanOrEqual(1)
     expect(screen.queryByText('Oreiller Confort')).not.toBeInTheDocument()
     expect(screen.queryByText('Sans fournisseur')).not.toBeInTheDocument()
   })
 
   it('supplier and category chips combine', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Rafik/ }))
     await user.click(screen.getByRole('button', { name: /Matelas/ }))
-    expect(screen.getByText('Matelas Elite')).toBeInTheDocument()
+    expect(screen.getAllByText('Matelas Elite').length).toBeGreaterThanOrEqual(1)
   })
 
   it('clicking a chip again un-toggles it', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     const chip = screen.getByRole('button', { name: /Rafik/ })
     await user.click(chip)
@@ -169,7 +204,7 @@ describe('StockPage (ticket 08)', () => {
 
   it('Tous les fournisseurs resets the supplier row', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Rafik/ }))
     await user.click(screen.getByRole('button', { name: /Tous les fournisseurs/ }))
@@ -178,9 +213,9 @@ describe('StockPage (ticket 08)', () => {
 
   it('editing a product pre-fills the form and saves via products:update', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
-    const row = screen.getByText('Matelas Elite').closest('div') as HTMLElement
+    const row = screen.getAllByText('Matelas Elite')[0].closest('tr') as HTMLElement
     await user.click(within(row).getByLabelText('Modifier'))
     expect((await screen.findAllByText('Modifier le produit')).length).toBeGreaterThanOrEqual(1)
     const nameInput = screen.getByLabelText('Nom du produit') as HTMLInputElement
@@ -196,9 +231,9 @@ describe('StockPage (ticket 08)', () => {
 
   it('duplicating a product pre-fills the form and creates a new product with zero stock', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
-    const row = screen.getByText('Matelas Elite').closest('div') as HTMLElement
+    const row = screen.getAllByText('Matelas Elite')[0].closest('tr') as HTMLElement
     await user.click(within(row).getByLabelText('Dupliquer'))
     expect((await screen.findAllByText('Ajouter un produit')).length).toBeGreaterThanOrEqual(1)
     const nameInput = screen.getByLabelText('Nom du produit') as HTMLInputElement
@@ -215,7 +250,7 @@ describe('StockPage (ticket 08)', () => {
 
   it('dimension preset chips fill the first empty variant dimension', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Ajouter un produit/ }))
     await user.click(await screen.findByRole('button', { name: '160x190' }))
@@ -225,7 +260,7 @@ describe('StockPage (ticket 08)', () => {
 
   it('the quick-add + saves the typed dimension as a new preset', async () => {
     renderStock()
-    await screen.findByRole('heading', { name: 'Rafik' })
+    await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Ajouter un produit/ }))
     await user.type(await screen.findByPlaceholderText('Ex. : 160×190'), '200x200')

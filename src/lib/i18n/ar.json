@@ -143,6 +143,9 @@
   },
   "stock": {
     "title": "المخزون",
+    "product": "المنتج",
+    "actions": "إجراءات",
+    "stock": "المخزون",
     "addProduct": "إضافة منتج",
     "editProduct": "تعديل المنتج",
     "edit": "تعديل",

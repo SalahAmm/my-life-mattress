@@ -143,6 +143,9 @@
   },
   "stock": {
     "title": "Stock",
+    "product": "Produit",
+    "actions": "Actions",
+    "stock": "Stock",
     "addProduct": "Ajouter un produit",
     "editProduct": "Modifier le produit",
     "edit": "Modifier",
