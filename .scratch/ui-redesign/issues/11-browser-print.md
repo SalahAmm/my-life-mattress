@@ -4,7 +4,11 @@
 
 **Blocked by:** 06 — Counter (desktop)
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: browser print`. appendPrintScript helper (load→print, afterprint→close); printInBrowser visible window; printing:printInBrowser IPC (role-guarded); PrintPreviewDialog gains 'Imprimer via navigateur'; counter wires it without touching the ADR-0002 state machine. Seams A–D green; suite 142/142; typecheck clean. Delivery-slip and report previews reuse the same button when those documents land.
 
 - [ ] "Imprimer via navigateur" opens the print window with the identical document and triggers the print dialog
 - [ ] Sale state safe on cancel/failure; cart resets only via Terminer la vente
