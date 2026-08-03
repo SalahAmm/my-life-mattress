@@ -20,9 +20,9 @@ const products: ProductWithVariants[] = [
     supplier_name: 'Rafik',
     active: true,
     variants: [
-      { id: 10, product_id: 1, dimension: '160x190', price: 45000, sku: null, quantity_on_hand: 4, low_stock_threshold: 2, out_of_stock: false },
-      { id: 11, product_id: 1, dimension: '180x200', price: 55000, sku: null, quantity_on_hand: 1, low_stock_threshold: 2, out_of_stock: false },
-      { id: 12, product_id: 1, dimension: '200x200', price: 65000, sku: null, quantity_on_hand: 0, low_stock_threshold: 1, out_of_stock: true },
+      { id: 10, product_id: 1, dimension: '160x190', price: 45000, sku: null, name: null, quantity_on_hand: 4, low_stock_threshold: 2, out_of_stock: false },
+      { id: 11, product_id: 1, dimension: '180x200', price: 55000, sku: null, name: null, quantity_on_hand: 1, low_stock_threshold: 2, out_of_stock: false },
+      { id: 12, product_id: 1, dimension: '200x200', price: 65000, sku: null, name: null, quantity_on_hand: 0, low_stock_threshold: 1, out_of_stock: true },
     ],
   },
   {
@@ -34,7 +34,7 @@ const products: ProductWithVariants[] = [
     supplier_name: null,
     active: true,
     variants: [
-      { id: 20, product_id: 2, dimension: '40x60', price: 3000, sku: null, quantity_on_hand: 3, low_stock_threshold: 1, out_of_stock: false },
+      { id: 20, product_id: 2, dimension: '40x60', price: 3000, sku: null, name: null, quantity_on_hand: 3, low_stock_threshold: 1, out_of_stock: false },
     ],
   },
 ]

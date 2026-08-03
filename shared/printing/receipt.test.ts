@@ -35,6 +35,7 @@ function sale(overrides: Partial<SaleWithDetails> = {}): SaleWithDetails {
         custom_description: null,
         product_name: 'Matelas Orthopédique Elite',
         dimension: '160x190',
+        variant_name: null,
       },
     ],
     payments: [],
@@ -89,6 +90,7 @@ describe('receipt template', () => {
           custom_description: 'Dimension Personnalisée: 170x200',
           product_name: null,
           dimension: null,
+          variant_name: null,
         },
       ],
       total: 102000,
@@ -110,6 +112,7 @@ describe('receipt template', () => {
           custom_description: 'Cadre Sur Mesure 200x200',
           product_name: null,
           dimension: null,
+          variant_name: null,
         },
       ],
       total: 70000,
@@ -191,6 +194,26 @@ describe('receipt template', () => {
     expect(html).toContain('N° 0012')
   })
 
+  it('renders a bed color variant as name — size', () => {
+    const html = render({
+      items: [
+        {
+          id: 5,
+          sale_id: 12,
+          product_variant_id: 9,
+          quantity: 1,
+          unit_price_at_sale: 80000,
+          custom_description: null,
+          product_name: 'Lit Sierra',
+          dimension: null,
+          variant_name: 'Sahara',
+        },
+      ],
+      total: 80000,
+    })
+    expect(html).toContain('Lit Sierra Sahara')
+  })
+
   it('embeds the logo when a logo source is provided', () => {
     const html = render({}, {}, 'app-asset://logos/logo.png')
     expect(html).toContain('<img class="logo"')
@@ -225,6 +248,7 @@ describe('receipt template', () => {
           custom_description: 'فرشة سرير 170x200',
           product_name: null,
           dimension: null,
+          variant_name: null,
         },
       ],
       total: 40000,

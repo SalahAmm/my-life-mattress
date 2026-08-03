@@ -44,6 +44,7 @@ export type ProductVariant = {
   id: number
   product_id: number
   dimension: string
+  name: string | null
   price: number
   sku: string | null
 }
@@ -154,6 +155,7 @@ export interface ProductVariantWithStock {
   id: number
   product_id: number
   dimension: string
+  name: string | null
   price: number
   sku: string | null
   quantity_on_hand: number
@@ -168,6 +170,7 @@ export interface CounterProduct {
   variants: {
     id: number
     dimension: string
+    name: string | null
     price: number
     out_of_stock: boolean
   }[]
@@ -175,6 +178,7 @@ export interface CounterProduct {
 
 export interface NewVariantInput {
   dimension: string
+  name?: string | null
   price: number
   sku: string | null
   initialStock: number
@@ -219,6 +223,7 @@ export interface SaleItemDetailed {
   custom_description: string | null
   product_name: string | null
   dimension: string | null
+  variant_name: string | null
 }
 
 export interface SaleWithDetails {

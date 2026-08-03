@@ -8,7 +8,7 @@ export function createProduct(db: Database, input: NewProductInput): number {
       .run(input.name, input.categoryId, input.supplierId)
     const productId = Number(result.lastInsertRowid)
     const insertVariant = db.prepare(
-      'INSERT INTO product_variants (product_id, dimension, price, sku) VALUES (?, ?, ?, ?)',
+      'INSERT INTO product_variants (product_id, dimension, name, price, sku) VALUES (?, ?, ?, ?, ?)',
     )
     const insertStock = db.prepare(
       'INSERT INTO stock_items (product_variant_id, quantity_on_hand, low_stock_threshold) VALUES (?, ?, ?)',
@@ -17,6 +17,7 @@ export function createProduct(db: Database, input: NewProductInput): number {
       const variantResult = insertVariant.run(
         productId,
         variant.dimension,
+        variant.name ?? null,
         variant.price,
         variant.sku,
       )
@@ -46,7 +47,7 @@ function variantsFor(db: Database, productIds: number[]) {
   return db
     .prepare(
       `SELECT
-        v.id, v.product_id, v.dimension, v.price, v.sku,
+        v.id, v.product_id, v.dimension, v.name, v.price, v.sku,
         si.quantity_on_hand, si.low_stock_threshold
        FROM product_variants v
        LEFT JOIN stock_items si ON si.product_variant_id = v.id
@@ -57,6 +58,7 @@ function variantsFor(db: Database, productIds: number[]) {
     id: number
     product_id: number
     dimension: string
+    name: string | null
     price: number
     sku: string | null
     quantity_on_hand: number
@@ -92,6 +94,7 @@ export function listProducts(db: Database): ProductWithVariants[] {
         id: v.id,
         product_id: v.product_id,
         dimension: v.dimension,
+        name: v.name,
         price: v.price,
         sku: v.sku,
         quantity_on_hand: v.quantity_on_hand,
@@ -116,6 +119,7 @@ export function listCounterProducts(db: Database): CounterProduct[] {
       .map((v) => ({
         id: v.id,
         dimension: v.dimension,
+        name: v.name,
         price: v.price,
         out_of_stock: v.quantity_on_hand <= 0,
       })),

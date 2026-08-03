@@ -52,6 +52,7 @@ export function sampleSaleForPreview(): SaleWithDetails {
         custom_description: null,
         product_name: 'Matelas Orthopédique Elite',
         dimension: '160×190',
+        variant_name: null,
       },
       {
         id: 2,
@@ -62,6 +63,7 @@ export function sampleSaleForPreview(): SaleWithDetails {
         custom_description: 'Dimension Personnalisée: 170×200',
         product_name: null,
         dimension: null,
+        variant_name: null,
       },
     ],
     payments: [{ id: 1, sale_id: 0, amount: 17100, type: 'deposit', entered_as_percentage: 30, created_at: '' }],

@@ -75,4 +75,37 @@ describe('products queries', () => {
     const after = listProducts(db)[0].variants[0]
     expect(after.quantity_on_hand).toBe(7)
   })
+
+  it('migration v2: variants carry an optional name; beds use empty dimension', () => {
+    const db = database()
+    const cols = db.prepare('PRAGMA table_info(product_variants)').all() as { name: string }[]
+    expect(cols.map((c) => c.name)).toContain('name')
+    const productId = createProduct(db, {
+      name: 'Lit Sierra',
+      categoryId: null,
+      supplierId: null,
+      variants: [
+        { dimension: '', name: 'Sahara', price: 80000, sku: null, initialStock: 2, lowStockThreshold: 1 },
+        { dimension: '160x190', name: 'Blanc', price: 45000, sku: null, initialStock: 1, lowStockThreshold: 1 },
+      ],
+    })
+    const product = listProducts(db).find((p) => p.id === productId)!
+    expect(product.variants[0].name).toBe('Sahara')
+    expect(product.variants[0].dimension).toBe('')
+    expect(product.variants[1].name).toBe('Blanc')
+    expect(product.variants[1].dimension).toBe('160x190')
+  })
+
+  it('counter products expose the variant name', () => {
+    const db = database()
+    createProduct(db, {
+      name: 'Lit Sierra',
+      categoryId: null,
+      supplierId: null,
+      variants: [{ dimension: '', name: 'Sahara', price: 80000, sku: null, initialStock: 0, lowStockThreshold: 0 }],
+    })
+    const counter = listCounterProducts(db)
+    expect(counter[0].variants[0].name).toBe('Sahara')
+    expect(counter[0].variants[0].dimension).toBe('')
+  })
 })

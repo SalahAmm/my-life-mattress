@@ -21,7 +21,8 @@ const mockApi = {
         name: 'Matelas Elite',
         category_id: 1,
         variants: [
-          { id: 10, dimension: '160x190', price: 45000, out_of_stock: false },
+          { id: 10, dimension: '160x190',
+        variant_name: null, price: 45000, out_of_stock: false },
           { id: 11, dimension: '180x200', price: 55000, out_of_stock: true },
         ],
       },
@@ -78,6 +79,7 @@ const saleFixture: SaleWithDetails = {
       custom_description: null,
       product_name: 'Matelas Elite',
       dimension: '160x190',
+        variant_name: null,
     },
   ],
   payments: [],

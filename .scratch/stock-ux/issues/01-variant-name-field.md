@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Migration v2 adds `name` to product_variants (nullable) and makes dimension nullable
 - [ ] Product create accepts variant names; label logic unit-tested (name → size → both)

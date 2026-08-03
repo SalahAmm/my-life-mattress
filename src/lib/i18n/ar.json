@@ -148,6 +148,8 @@
     "newSupplier": "مورّد جديد…",
     "supplierName": "اسم المورّد",
     "variants": "المقاسات / الخيارات",
+    "variantName": "الاسم (اللون)",
+    "variantNamePlaceholder": "مثال: صحارى",
     "dimension": "المقاس",
     "dimensionPlaceholder": "مثال: 160×190",
     "price": "السعر (دج)",

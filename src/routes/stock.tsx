@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, Package, Plus, Trash2, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDzd } from '@shared/money'
+import { variantLabel } from '@shared/variants'
 import type { NewProductInput, NewVariantInput, ProductWithVariants } from '@shared/types'
 import { api } from '@/lib/ipc-client'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -288,7 +289,7 @@ function SupplierGroup({
                 {product.variants.map((variant) => (
                   <div key={variant.id} className="flex flex-wrap items-center gap-3 text-sm">
                     <span className="w-28 font-medium" dir="auto">
-                      {variant.dimension}
+                      {variantLabel(variant.name, variant.dimension)}
                     </span>
                     <span className="w-28 text-muted-foreground" dir="ltr">
                       {formatDzd(variant.price)}
@@ -383,7 +384,7 @@ function AddProductDialog({
   const [newSupplier, setNewSupplier] = useState('')
   const [showNewSupplier, setShowNewSupplier] = useState(false)
   const [variants, setVariants] = useState<NewVariantInput[]>([
-    { dimension: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 },
+    { dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 },
   ])
 
   const createSupplierMutation = useMutation({
@@ -402,7 +403,7 @@ function AddProductDialog({
       setSupplierId('none')
       setNewSupplier('')
       setShowNewSupplier(false)
-      setVariants([{ dimension: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }])
+      setVariants([{ dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }])
     },
     onError: (error: Error) => toast.error(error.message),
   })
@@ -496,13 +497,16 @@ function AddProductDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>{t('stock.variants')}</Label>
-              <Button size="sm" variant="outline" onClick={() => setVariants((prev) => [...prev, { dimension: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }])}>
+              <Button size="sm" variant="outline" onClick={() => setVariants((prev) => [...prev, { dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }])}>
                 <Plus />
                 {t('stock.addVariant')}
               </Button>
             </div>
             {variants.map((variant, index) => (
-              <div key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] items-end gap-2">
+              <div key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] items-end gap-2">
+                <VariantField label={t('stock.variantName')}>
+                  <Input dir="auto" value={variant.name ?? ''} onChange={(e) => updateVariant(index, { name: e.target.value })} placeholder={t('stock.variantNamePlaceholder')} />
+                </VariantField>
                 <VariantField label={t('stock.dimension')}>
                   <Input dir="auto" value={variant.dimension} onChange={(e) => updateVariant(index, { dimension: e.target.value })} placeholder={t('stock.dimensionPlaceholder')} />
                 </VariantField>

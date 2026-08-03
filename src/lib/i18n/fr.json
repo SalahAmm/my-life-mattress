@@ -148,6 +148,8 @@
     "newSupplier": "Nouveau fournisseur…",
     "supplierName": "Nom du fournisseur",
     "variants": "Tailles / Variantes",
+    "variantName": "Nom (couleur)",
+    "variantNamePlaceholder": "Ex. : Sahara",
     "dimension": "Dimension",
     "dimensionPlaceholder": "Ex. : 160×190",
     "price": "Prix (DZD)",

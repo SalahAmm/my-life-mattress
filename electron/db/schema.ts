@@ -122,4 +122,12 @@ export const MIGRATIONS: { version: number; up: (db: Database) => void }[] = [
       `)
     },
   },
+  {
+    version: 2,
+    up(db) {
+      db.exec(`
+        ALTER TABLE product_variants ADD COLUMN name TEXT;
+      `)
+    },
+  },
 ]

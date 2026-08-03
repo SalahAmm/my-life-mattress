@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { AlertTriangle, Loader2, Minus, Plus, Printer, Ruler, ShoppingCart, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { depositFromPercentage, formatDzd, saleTotal } from '@shared/money'
+import { variantLabel } from '@shared/variants'
 import type { CounterProduct, NewSalePayload, SaleWithDetails, Session } from '@shared/types'
 import { api } from '@/lib/ipc-client'
 import { saleReceiptHtml } from '@/lib/receipt-preview'
@@ -733,7 +734,7 @@ function ProductCard({
                 onClick={() => onSelectVariant(variant.id, variant.dimension, variant.price, variant.out_of_stock)}
               >
                 <span className="block text-sm font-semibold" dir="auto">
-                  {variant.dimension}
+                  {variantLabel(variant.name, variant.dimension)}
                 </span>
                 <span className="block text-xs text-muted-foreground" dir="ltr">
                   {formatDzd(variant.price)}

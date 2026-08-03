@@ -126,7 +126,7 @@ export function getSale(db: Database, saleId: number): SaleWithDetails {
   }
   const items = db
     .prepare(
-      `SELECT si.*, p.name AS product_name, v.dimension
+      `SELECT si.*, p.name AS product_name, v.dimension, v.name AS variant_name
        FROM sale_items si
        LEFT JOIN product_variants v ON v.id = si.product_variant_id
        LEFT JOIN products p ON p.id = v.product_id

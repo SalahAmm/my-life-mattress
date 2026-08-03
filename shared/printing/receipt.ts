@@ -1,5 +1,6 @@
 import type { ReceiptSettings, SaleWithDetails } from '../types'
 import { formatDzd } from '../money'
+import { variantLabel } from '../variants'
 
 export interface ReceiptFontUrls {
   inter: { 400: string; 600: string; 700: string }
@@ -47,7 +48,7 @@ export function renderReceiptHtml(input: ReceiptTemplateInput): string {
   const itemRows = sale.items
     .map((item) => {
       const name = item.product_variant_id != null
-        ? `${item.product_name ?? ''} ${item.dimension ?? ''}`.trim()
+        ? `${item.product_name ?? ''} ${variantLabel(item.variant_name, item.dimension)}`.trim()
         : (item.custom_description ?? '')
       const qty = settings.show_quantity_on_receipt
         ? `<span dir="ltr">${item.quantity} × ${formatDzd(item.unit_price_at_sale)}</span>`
