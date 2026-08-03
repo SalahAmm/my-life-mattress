@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 — RTL shell and direction support
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Sidebar trigger visible below desktop breakpoint; nav opens as Sheet and closes on navigation
 - [ ] No horizontal page scroll at 320, 768, 1024, 1280 in FR and AR

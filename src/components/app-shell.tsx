@@ -5,7 +5,7 @@ import { Navigate, NavLink, Route, Routes } from 'react-router-dom'
 import type { Role, Session } from '@shared/types'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail } from '@/components/ui/sidebar'
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/ipc-client'
 import { useAppLanguage } from '@/lib/i18n'
@@ -14,6 +14,7 @@ import { PlaceholderPage } from '@/routes/placeholder'
 import { CounterPage } from '@/routes/counter'
 import { StockPage } from '@/routes/stock'
 import { SettingsPage } from '@/routes/settings'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 interface NavItem {
   key: string
@@ -36,10 +37,12 @@ export function AppShell({ session }: { session: Session }) {
   const { language } = useAppLanguage()
 
   return (
-    <SidebarProvider>
-      <AppSidebar session={session} items={items} side={language === 'ar' ? 'right' : 'left'} />
-      <SidebarInset className="bg-background">
-        <main className="h-screen overflow-auto p-6">
+    <TooltipProvider delayDuration={0}>
+      <SidebarProvider>
+        <AppSidebar session={session} items={items} side={language === 'ar' ? 'right' : 'left'} />
+        <SidebarInset className="bg-background">
+          <MobileHeader />
+          <main className="h-screen overflow-auto p-4 md:p-6">
           <Routes>
             <Route path="/" element={<CounterPage session={session} />} />
             <Route
@@ -66,6 +69,19 @@ export function AppShell({ session }: { session: Session }) {
         </main>
       </SidebarInset>
     </SidebarProvider>
+    </TooltipProvider>
+  )
+}
+
+function MobileHeader() {
+  const { t } = useTranslation()
+  const { isMobile } = useSidebar()
+  if (!isMobile) return null
+  return (
+    <div className="flex items-center gap-2 border-b bg-card px-3 py-2">
+      <SidebarTrigger aria-label={t('common.menu')} />
+      <span className="truncate text-sm font-bold">{t('app.name')}</span>
+    </div>
   )
 }
 
@@ -81,6 +97,7 @@ function AppSidebar({
   const { t } = useTranslation()
   const { theme, toggleTheme } = useTheme()
   const { language, toggleLanguage } = useAppLanguage()
+  const { setOpenMobile } = useSidebar()
   const queryClient = useQueryClient()
 
   const logout = async () => {
@@ -108,8 +125,12 @@ function AppSidebar({
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.key}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.path} end={item.path === '/'}>
+                  <SidebarMenuButton asChild tooltip={t(`nav.${item.key}`)}>
+                    <NavLink
+                      to={item.path}
+                      end={item.path === '/'}
+                      onClick={() => setOpenMobile(false)}
+                    >
                       {({ isActive }) => (
                         <>
                           <item.icon />

@@ -56,7 +56,8 @@
     "loading": "Chargement…",
     "darkMode": "Mode sombre",
     "lightMode": "Mode clair",
-    "language": "Langue"
+    "language": "Langue",
+    "menu": "Menu"
   },
   "role": {
     "owner": "Propriétaire",

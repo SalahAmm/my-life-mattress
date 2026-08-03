@@ -20,4 +20,14 @@ if (typeof window !== 'undefined') {
       dispatchEvent: () => false,
     }),
   })
+
+  class ResizeObserverMock {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  Object.defineProperty(window, 'ResizeObserver', {
+    writable: true,
+    value: ResizeObserverMock,
+  })
 }

@@ -56,7 +56,8 @@
     "loading": "جارٍ التحميل…",
     "darkMode": "الوضع الداكن",
     "lightMode": "الوضع الفاتح",
-    "language": "اللغة"
+    "language": "اللغة",
+    "menu": "القائمة"
   },
   "role": {
     "owner": "المالك",
