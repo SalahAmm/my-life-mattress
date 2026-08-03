@@ -230,6 +230,30 @@ describe('CounterPage', () => {
     expect(button.className).toMatch(/bg-accent/)
   })
 
+  it('renders the product photo on the card when present, letter tile otherwise', async () => {
+    vi.mocked(mockApi.products.list).mockResolvedValue([
+      {
+        id: 1,
+        name: 'Matelas Elite',
+        category_id: 1,
+        image_path: 'C:/data/products/p1.png',
+        variants: [{ id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false }],
+      },
+      {
+        id: 2,
+        name: 'Lit Sierra',
+        category_id: 1,
+        image_path: null,
+        variants: [{ id: 20, dimension: '', name: 'Sahara', price: 80000, out_of_stock: false }],
+      },
+    ])
+    renderCounter()
+    await screen.findByText('Matelas Elite')
+    const images = [...document.querySelectorAll('img')] as HTMLImageElement[]
+    expect(images.some((img) => img.src.includes('app-asset://products/p1.png'))).toBe(true)
+    expect(screen.getByText('L')).toBeInTheDocument()
+  })
+
   it('never double-submits: the save button is disabled while pending', async () => {
     let resolveCreate: (value: number) => void = () => {}
     vi.mocked(mockApi.sales.create).mockImplementation(() => new Promise<number>((resolve) => (resolveCreate = resolve)))

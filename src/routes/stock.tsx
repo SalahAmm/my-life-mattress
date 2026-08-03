@@ -323,10 +323,10 @@ function SupplierGroup({
                   <img
                     src={productImageUrl(product.image_path)!}
                     alt={product.name}
-                    className="size-10 shrink-0 rounded-none border object-cover"
+                    className="size-16 shrink-0 rounded-none border object-cover"
                   />
                 ) : (
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-none border bg-muted text-sm font-bold text-muted-foreground">
+                  <span className="flex size-16 shrink-0 items-center justify-center rounded-none border bg-muted text-lg font-bold text-muted-foreground">
                     {product.name.charAt(0).toUpperCase()}
                   </span>
                 )}
@@ -522,11 +522,11 @@ function AddProductDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-none border bg-muted">
+            <div className="flex h-36 w-full max-w-[200px] shrink-0 items-center justify-center overflow-hidden rounded-none border bg-muted">
               {imagePath ? (
-                <img src={productImageUrl(imagePath)!} alt={t('stock.productPhoto')} className="h-full w-full object-cover" />
+                <img src={productImageUrl(imagePath)!} alt={t('stock.productPhoto')} className="h-full w-full object-contain" />
               ) : (
-                <ImagePlus className="size-6 text-muted-foreground" />
+                <ImagePlus className="size-8 text-muted-foreground" />
               )}
             </div>
             <div className="flex-1 space-y-2">

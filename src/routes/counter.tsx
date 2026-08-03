@@ -716,11 +716,11 @@ function ProductCard({
     <div className={expanded ? 'rounded-none border-2 border-primary p-2' : 'rounded-none border p-2'}>
       <button type="button" onClick={onToggle} className="w-full text-start">
         {imageUrl ? (
-          <div className="flex h-16 items-center justify-center overflow-hidden rounded-none bg-muted">
+          <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-none bg-muted">
             <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
           </div>
         ) : (
-          <div className="flex h-16 items-center justify-center rounded-none bg-muted text-2xl font-bold text-muted-foreground">
+          <div className="flex aspect-[4/3] w-full items-center justify-center rounded-none bg-muted text-4xl font-bold text-muted-foreground">
             {product.name.charAt(0).toUpperCase()}
           </div>
         )}
