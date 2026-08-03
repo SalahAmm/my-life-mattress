@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Theme system and brand tokens; 05 — Management primitives
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: counter ADR-0002 post-sale flow`. Preview stays open after save; cart/form reset only via Terminer la vente; reprint banner when preview closed; Enregistrer save-locked while a sale is open; gold accent on Enregistrer. Seams A–E green; suite 137/137; typecheck clean.
 
 - [ ] Full sale end-to-end from the new UI (product → variant → custom dimension → customer → deposit → save → preview)
 - [ ] Cart/form reset only on "Terminer la vente"; closing preview or failed print never loses the sale
