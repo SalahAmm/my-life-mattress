@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 — Full product edit; 09 — Duplicate product
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] One row per variant with all columns; photo + letter fallback
 - [ ] Sortable headers work; sticky header

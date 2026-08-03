@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: duplicate product. Copy action pre-fills the form (variants + photo, stock 0), creates via products:create. Suite 187/187; typecheck clean.
 
 - [ ] Row action opens the form pre-filled; save creates a new product
 - [ ] Stock quantities start at 0 on the copy
