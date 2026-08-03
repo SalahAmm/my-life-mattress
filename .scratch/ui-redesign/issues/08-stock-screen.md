@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Theme system and brand tokens; 05 — Management primitives
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: stock screen`. Supplier-grouped list (ADR-0003) with category badges, three clickable KPI cards with variant-level filtering, search toolbar, supplier add/remove via owner-only suppliers:setActive IPC, Sans fournisseur group. Seams A–D green; suite 155/155; typecheck clean.
 
 - [ ] KPI cards show live counts and filter the list when clicked
 - [ ] Products grouped under supplier headers; category badges intact
