@@ -593,31 +593,9 @@ function AddProductDialog({
   const applyPreset = (dimension: string) => {
     setVariants((prev) => {
       const emptyIndex = prev.findIndex((v) => !v.dimension.trim())
-      if (emptyIndex >= 0) {
-        return prev.map((v, i) => (i === emptyIndex ? { ...v, dimension } : v))
-      }
-      return [...prev, { dimension, name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }]
+      if (emptyIndex < 0) return prev
+      return prev.map((v, i) => (i === emptyIndex ? { ...v, dimension } : v))
     })
-  }
-
-  const quickAddPreset = () => {
-    if (!settings) return
-    const dimension = variants.find((v) => v.dimension.trim())?.dimension.trim()
-    if (!dimension) return
-    if (settings.dimension_presets.includes(dimension)) return
-    void api.settings
-      .updateReceipt({
-        storeName: settings.store_name,
-        defaultDepositPercentages: settings.default_deposit_percentages,
-        showDeliveryNote: settings.show_delivery_note,
-        showPhoneOnReceipt: settings.show_phone_on_receipt,
-        showQuantityOnReceipt: settings.show_quantity_on_receipt,
-        dimensionPresets: [...settings.dimension_presets, dimension],
-      })
-      .then(() => {
-        void queryClient.invalidateQueries({ queryKey: ['settings'] })
-        toast.success(t('stock.presetAdded'))
-      })
   }
 
   return (
@@ -717,15 +695,6 @@ function AddProductDialog({
                   {preset}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={quickAddPreset}
-                className="rounded-none border border-dashed border-primary/40 px-2 py-1 text-primary transition-colors hover:bg-primary/5"
-                aria-label={t('stock.quickAddPreset')}
-                title={t('stock.quickAddPreset')}
-              >
-                <Plus className="size-3.5" />
-              </button>
             </div>
             <div className="flex items-center justify-between">
               <Label>{t('stock.variants')}</Label>
@@ -750,13 +719,15 @@ function AddProductDialog({
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                  <VariantField label={t('stock.variantName')} className="xl:col-span-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <VariantField label={t('stock.variantName')}>
                     <Input dir="auto" value={variant.name ?? ''} onChange={(e) => updateVariant(index, { name: e.target.value })} placeholder={t('stock.variantNamePlaceholder')} />
                   </VariantField>
-                  <VariantField label={t('stock.dimension')} className="xl:col-span-1">
+                  <VariantField label={t('stock.dimension')}>
                     <Input dir="auto" value={variant.dimension} onChange={(e) => updateVariant(index, { dimension: e.target.value })} placeholder={t('stock.dimensionPlaceholder')} />
                   </VariantField>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <VariantField label={t('stock.price')}>
                     <Input dir="ltr" inputMode="numeric" value={variant.price === 0 ? '' : String(variant.price)} onChange={(e) => updateVariant(index, { price: Number(e.target.value) || 0 })} />
                   </VariantField>

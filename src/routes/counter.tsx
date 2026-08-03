@@ -622,6 +622,33 @@ function availabilityLabel(
   return t('counter.moreThan', { n: variant.available_above ?? 3 })
 }
 
+function AvailabilityPill({
+  variant,
+  light,
+}: {
+  variant: { out_of_stock: boolean; low_stock: boolean; available_low: number | null; available_above: number | null }
+  light?: boolean
+}) {
+  const { t } = useTranslation()
+  const className = variant.out_of_stock
+    ? 'bg-destructive text-destructive-foreground'
+    : variant.low_stock
+      ? 'bg-warning text-warning-foreground'
+      : 'bg-success text-success-foreground'
+  return (
+    <span
+      data-slot="availability-pill"
+      className={cn(
+        'inline-block rounded-none px-2 py-0.5 text-xs font-bold whitespace-nowrap',
+        className,
+        light && 'opacity-90',
+      )}
+    >
+      {availabilityLabel(t, variant)}
+    </span>
+  )
+}
+
 function ChooserDialog({
   product,
   selectedName,
@@ -693,8 +720,8 @@ function ChooserDialog({
                         {name}
                       </span>
                       {first && (
-                        <span className={cn('block text-xs', selectedName === name ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
-                          {availabilityLabel(t, first)}
+                        <span className="mt-1 block">
+                          <AvailabilityPill variant={first} light={selectedName === name} />
                         </span>
                       )}
                     </button>
@@ -723,8 +750,8 @@ function ChooserDialog({
                         {dimension}
                       </span>
                       {first && (
-                        <span className={cn('block text-xs', selectedDimension === dimension ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
-                          {availabilityLabel(t, first)}
+                        <span className="mt-1 block">
+                          <AvailabilityPill variant={first} light={selectedDimension === dimension} />
                         </span>
                       )}
                     </button>
@@ -734,13 +761,11 @@ function ChooserDialog({
             </div>
           )}
           {selectedVariant && (
-            <div className="flex items-center justify-between rounded-none border bg-muted/50 px-3 py-2 text-sm">
-              <span dir="auto">
+            <div className="flex items-center justify-between gap-2 rounded-none border bg-muted/50 px-3 py-2 text-sm">
+              <span className="font-medium" dir="auto">
                 {variantLabel(selectedVariant.name, selectedVariant.dimension) || product.name}
               </span>
-              <span className={cn('font-semibold', selectedVariant.out_of_stock && 'text-destructive')}>
-                {availabilityLabel(t, selectedVariant)}
-              </span>
+              <AvailabilityPill variant={selectedVariant} />
             </div>
           )}
           <div className="flex justify-end gap-2">

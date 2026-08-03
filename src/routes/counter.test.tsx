@@ -159,9 +159,13 @@ describe('CounterPage redesign (ticket 02)', () => {
     await user.click(await screen.findByRole('button', { name: 'Matelas' }))
     await user.click(await screen.findByRole('button', { name: 'Lit Sierra' }))
     expect((await screen.findAllByText('Plus que 2')).length).toBeGreaterThanOrEqual(1)
+    const pills = [...document.querySelectorAll('[data-slot="availability-pill"]')] as HTMLElement[]
+    expect(pills.some((p) => p.textContent === 'Plus que 2')).toBe(true)
     await user.click(screen.getByRole('button', { name: 'Fermer' }))
     await user.click(await screen.findByRole('button', { name: 'Matelas Elite' }))
     expect(await screen.findByText('Rupture')).toBeInTheDocument()
+    const rupturePills = [...document.querySelectorAll('[data-slot="availability-pill"]')] as HTMLElement[]
+    expect(rupturePills.some((p) => p.textContent === 'Rupture')).toBe(true)
   })
 
   it('shows a near-end banner when a low-stock variant is in the cart', async () => {

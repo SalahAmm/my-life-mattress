@@ -263,17 +263,17 @@ describe('StockPage (ticket 08)', () => {
     expect(dimensionInput.value).toBe('160x190')
   })
 
-  it('the quick-add + saves the typed dimension as a new preset', async () => {
+  it('clicking a preset chip when all dimensions are filled adds no row', async () => {
     renderStock()
     await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Ajouter un produit/ }))
-    await user.type(await screen.findByPlaceholderText('Ex. : 160×190'), '200x200')
-    await user.click(screen.getByLabelText('Enregistrer comme préréglage'))
-    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
-    const input = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
-      dimensionPresets: string[]
-    }
-    expect(input.dimensionPresets).toContain('200x200')
+    const dimensionInput = await screen.findByPlaceholderText('Ex. : 160×190')
+    await user.type(dimensionInput, '140x190')
+    await user.click(screen.getByRole('button', { name: '160x190' }))
+    const inputs = [...document.querySelectorAll('input')].filter(
+      (i) => (i as HTMLInputElement).placeholder === 'Ex. : 160×190',
+    )
+    expect(inputs).toHaveLength(1)
   })
 })
