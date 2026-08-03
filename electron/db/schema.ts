@@ -138,4 +138,12 @@ export const MIGRATIONS: { version: number; up: (db: Database) => void }[] = [
       `)
     },
   },
+  {
+    version: 4,
+    up(db) {
+      db.exec(`
+        ALTER TABLE receipt_settings ADD COLUMN dimension_presets TEXT NOT NULL DEFAULT '["90x190","160x190","180x200"]';
+      `)
+    },
+  },
 ]

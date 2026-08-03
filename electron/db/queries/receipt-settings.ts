@@ -5,6 +5,7 @@ function rowToSettings(row: {
   store_name: string
   logo_path: string | null
   default_deposit_percentages: string
+  dimension_presets: string
   show_delivery_note: number
   show_phone_on_receipt: number
   show_quantity_on_receipt: number
@@ -14,6 +15,7 @@ function rowToSettings(row: {
     store_name: row.store_name,
     logo_path: row.logo_path,
     default_deposit_percentages: JSON.parse(row.default_deposit_percentages) as number[],
+    dimension_presets: JSON.parse(row.dimension_presets) as string[],
     show_delivery_note: Boolean(row.show_delivery_note),
     show_phone_on_receipt: Boolean(row.show_phone_on_receipt),
     show_quantity_on_receipt: Boolean(row.show_quantity_on_receipt),
@@ -28,6 +30,7 @@ export function getReceiptSettings(db: Database): ReceiptSettings {
     store_name: string
     logo_path: string | null
     default_deposit_percentages: string
+    dimension_presets: string
     show_delivery_note: number
     show_phone_on_receipt: number
     show_quantity_on_receipt: number
@@ -44,6 +47,7 @@ export function updateReceiptSettings(
     showDeliveryNote: boolean
     showPhoneOnReceipt: boolean
     showQuantityOnReceipt: boolean
+    dimensionPresets: string[]
   },
 ): void {
   db.prepare(
@@ -51,6 +55,7 @@ export function updateReceiptSettings(
       store_name = ?,
       logo_path = ?,
       default_deposit_percentages = ?,
+      dimension_presets = ?,
       show_delivery_note = ?,
       show_phone_on_receipt = ?,
       show_quantity_on_receipt = ?,
@@ -60,6 +65,7 @@ export function updateReceiptSettings(
     input.storeName,
     input.logoPath,
     JSON.stringify(input.defaultDepositPercentages),
+    JSON.stringify(input.dimensionPresets),
     input.showDeliveryNote ? 1 : 0,
     input.showPhoneOnReceipt ? 1 : 0,
     input.showQuantityOnReceipt ? 1 : 0,

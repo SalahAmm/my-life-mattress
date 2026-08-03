@@ -29,6 +29,7 @@ export interface UpdateReceiptSettingsInput {
   showDeliveryNote: boolean
   showPhoneOnReceipt: boolean
   showQuantityOnReceipt: boolean
+  dimensionPresets: string[]
 }
 
 export interface PrintResult {

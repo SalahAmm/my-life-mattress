@@ -134,6 +134,9 @@
     "quantityOnReceiptHelp": "Affiche la quantité à côté du prix unitaire de chaque article.",
     "preview": "Aperçu du reçu",
     "previewHelp": "Ceci est exactement ce qui sera imprimé.",
+    "dimensionPresets": "Dimensions préréglées",
+    "dimensionPresetsHelp": "Ces tailles apparaissent en un clic lors de la création d'un produit. Ajoutez ou retirez-en à tout moment.",
+    "dimensionPresetPlaceholder": "Ex. : 200x200",
     "saved": "Paramètres enregistrés",
     "uploadFailed": "Impossible de téléverser le logo.",
     "comingSoon": "Cette section sera disponible prochainement."

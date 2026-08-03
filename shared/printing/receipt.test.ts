@@ -7,6 +7,7 @@ const settings: ReceiptSettings = {
   store_name: 'My Life Mattress',
   logo_path: null,
   default_deposit_percentages: [30, 50, 70],
+  dimension_presets: ['90x190', '160x190', '180x200'],
   show_delivery_note: true,
   show_phone_on_receipt: true,
   show_quantity_on_receipt: true,

@@ -129,6 +129,7 @@ describe('receipt settings validation', () => {
         showDeliveryNote: false,
         showPhoneOnReceipt: true,
         showQuantityOnReceipt: true,
+        dimensionPresets: ['90x190', '160x190', '180x200'],
       }).success,
     ).toBe(true)
     expect(
@@ -138,7 +139,31 @@ describe('receipt settings validation', () => {
         showDeliveryNote: true,
         showPhoneOnReceipt: true,
         showQuantityOnReceipt: true,
+        dimensionPresets: [],
       }).success,
     ).toBe(true)
+  })
+
+  it('rejects duplicate or empty dimension presets', () => {
+    expect(
+      SETTINGS_SCHEMA.safeParse({
+        storeName: 'My Life Mattress',
+        defaultDepositPercentages: [30],
+        showDeliveryNote: true,
+        showPhoneOnReceipt: true,
+        showQuantityOnReceipt: true,
+        dimensionPresets: ['160x190', '160x190'],
+      }).success,
+    ).toBe(false)
+    expect(
+      SETTINGS_SCHEMA.safeParse({
+        storeName: 'My Life Mattress',
+        defaultDepositPercentages: [30],
+        showDeliveryNote: true,
+        showPhoneOnReceipt: true,
+        showQuantityOnReceipt: true,
+        dimensionPresets: ['   '],
+      }).success,
+    ).toBe(false)
   })
 })

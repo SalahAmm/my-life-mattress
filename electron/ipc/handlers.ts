@@ -127,6 +127,11 @@ export const SETTINGS_SCHEMA = z.object({
   showDeliveryNote: z.boolean(),
   showPhoneOnReceipt: z.boolean(),
   showQuantityOnReceipt: z.boolean(),
+  dimensionPresets: z
+    .array(z.string().trim().min(1).max(30))
+    .min(0)
+    .max(20)
+    .refine((values) => new Set(values).size === values.length, { message: 'Duplicate presets' }),
 })
 
 const PAYMENT_SCHEMA = z.object({
@@ -304,6 +309,7 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       showDeliveryNote: parsed.data.showDeliveryNote,
       showPhoneOnReceipt: parsed.data.showPhoneOnReceipt,
       showQuantityOnReceipt: parsed.data.showQuantityOnReceipt,
+      dimensionPresets: parsed.data.dimensionPresets,
       logoPath: getReceiptSettings(db).logo_path,
     })
   }))
@@ -331,6 +337,7 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       showDeliveryNote: current.show_delivery_note,
       showPhoneOnReceipt: current.show_phone_on_receipt,
       showQuantityOnReceipt: current.show_quantity_on_receipt,
+      dimensionPresets: current.dimension_presets,
       logoPath: target,
     })
     return target

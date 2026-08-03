@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, ImagePlus, Loader2 } from 'lucide-react'
+import { Check, ImagePlus, Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/ipc-client'
 import { logoUrlFor, saleReceiptHtml, sampleSaleForPreview } from '@/lib/receipt-preview'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PageHeader } from '@/components/management/page-header'
@@ -20,7 +22,7 @@ export function SettingsPage() {
       <Tabs defaultValue="receipt" className="flex min-h-0 flex-1 flex-col">
         <TabsList className="w-fit">
           {(['general', 'categories', 'payment', 'receipt', 'printer', 'users', 'data'] as const).map((tab) => (
-            <TabsTrigger key={tab} value={tab} disabled={tab !== 'receipt'}>
+            <TabsTrigger key={tab} value={tab} disabled={tab !== 'receipt' && tab !== 'categories'}>
               {t(`settings.tab${tab.charAt(0).toUpperCase()}${tab.slice(1)}`)}
             </TabsTrigger>
           ))}
@@ -28,7 +30,10 @@ export function SettingsPage() {
         <TabsContent value="receipt" className="min-h-0 flex-1">
           <ReceiptTab />
         </TabsContent>
-        {(['general', 'categories', 'payment', 'printer', 'users', 'data'] as const).map((tab) => (
+        <TabsContent value="categories" className="min-h-0 flex-1">
+          <DimensionPresetsTab />
+        </TabsContent>
+        {(['general', 'payment', 'printer', 'users', 'data'] as const).map((tab) => (
           <TabsContent key={tab} value={tab}>
             <Card className="p-6 text-center text-muted-foreground">{t('settings.comingSoon')}</Card>
           </TabsContent>
@@ -53,6 +58,7 @@ function ReceiptTab() {
       showDeliveryNote: boolean
       showPhoneOnReceipt: boolean
       showQuantityOnReceipt: boolean
+      dimensionPresets: string[]
     }) => api.settings.updateReceipt(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['settings'] })
@@ -81,6 +87,7 @@ function ReceiptTab() {
     showDeliveryNote?: boolean
     showPhoneOnReceipt?: boolean
     showQuantityOnReceipt?: boolean
+    dimensionPresets?: string[]
   }) => {
     saveMutation.mutate({
       storeName: patch.storeName ?? settings.store_name,
@@ -88,6 +95,7 @@ function ReceiptTab() {
       showDeliveryNote: patch.showDeliveryNote ?? settings.show_delivery_note,
       showPhoneOnReceipt: patch.showPhoneOnReceipt ?? settings.show_phone_on_receipt,
       showQuantityOnReceipt: patch.showQuantityOnReceipt ?? settings.show_quantity_on_receipt,
+      dimensionPresets: patch.dimensionPresets ?? settings.dimension_presets,
     })
   }
 
@@ -180,5 +188,91 @@ function ToggleRow({
       </span>
       <Check className="ms-auto mt-1 size-4 text-muted-foreground" />
     </label>
+  )
+}
+
+function DimensionPresetsTab() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [newPreset, setNewPreset] = useState('')
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.settings.get(),
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: (dimensionPresets: string[]) =>
+      api.settings.updateReceipt({
+        storeName: settings!.store_name,
+        defaultDepositPercentages: settings!.default_deposit_percentages,
+        showDeliveryNote: settings!.show_delivery_note,
+        showPhoneOnReceipt: settings!.show_phone_on_receipt,
+        showQuantityOnReceipt: settings!.show_quantity_on_receipt,
+        dimensionPresets,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['settings'] })
+      toast.success(t('settings.saved'))
+    },
+    onError: (error: Error) => toast.error(error.message),
+  })
+
+  if (!settings) return null
+
+  const addPreset = () => {
+    const value = newPreset.trim()
+    if (!value) return
+    if (settings.dimension_presets.includes(value)) return
+    saveMutation.mutate([...settings.dimension_presets, value])
+    setNewPreset('')
+  }
+
+  const removePreset = (value: string) => {
+    saveMutation.mutate(settings.dimension_presets.filter((p) => p !== value))
+  }
+
+  return (
+    <Card className="max-w-xl">
+      <CardHeader>
+        <CardTitle>{t('settings.dimensionPresets')}</CardTitle>
+        <CardDescription>{t('settings.dimensionPresetsHelp')}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {settings.dimension_presets.map((preset) => (
+            <span
+              key={preset}
+              className="flex items-center gap-1.5 border bg-muted px-2.5 py-1.5 text-sm"
+              dir="ltr"
+            >
+              {preset}
+              <button
+                type="button"
+                onClick={() => removePreset(preset)}
+                className="text-muted-foreground hover:text-destructive"
+                aria-label={`${t('stock.remove')} ${preset}`}
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            dir="ltr"
+            placeholder={t('settings.dimensionPresetPlaceholder')}
+            value={newPreset}
+            onChange={(e) => setNewPreset(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') addPreset()
+            }}
+          />
+          <Button variant="outline" onClick={addPreset} disabled={!newPreset.trim()}>
+            <Plus />
+            {t('common.save')}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

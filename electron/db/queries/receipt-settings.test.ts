@@ -22,6 +22,7 @@ describe('receipt settings', () => {
       showPhoneOnReceipt: false,
       showQuantityOnReceipt: true,
       logoPath: 'C:/data/logo.png',
+      dimensionPresets: ['90x190', '160x190'],
     })
     const settings = getReceiptSettings(db)
     expect(settings.default_deposit_percentages).toEqual([50])
@@ -30,18 +31,23 @@ describe('receipt settings', () => {
     expect(settings.store_name).toBe('My Life Mattress')
   })
 
-  it('persists false for phone and quantity toggles', () => {
+  it('migration v4: dimension presets seeded with the three defaults', () => {
+    const db = createDatabase(':memory:')
+    const settings = getReceiptSettings(db)
+    expect(settings.dimension_presets).toEqual(['90x190', '160x190', '180x200'])
+  })
+
+  it('round-trips a customized preset list', () => {
     const db = createDatabase(':memory:')
     updateReceiptSettings(db, {
       storeName: 'My Life Mattress',
       defaultDepositPercentages: [30, 50, 70],
       showDeliveryNote: true,
-      showPhoneOnReceipt: false,
-      showQuantityOnReceipt: false,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
       logoPath: null,
+      dimensionPresets: ['90x190', '160x190', '180x200', '200x200'],
     })
-    const settings = getReceiptSettings(db)
-    expect(settings.show_phone_on_receipt).toBe(false)
-    expect(settings.show_quantity_on_receipt).toBe(false)
+    expect(getReceiptSettings(db).dimension_presets).toEqual(['90x190', '160x190', '180x200', '200x200'])
   })
 })

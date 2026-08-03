@@ -114,6 +114,7 @@ export type ReceiptSettings = {
   store_name: string
   logo_path: string | null
   default_deposit_percentages: number[]
+  dimension_presets: string[]
   show_delivery_note: boolean
   show_phone_on_receipt: boolean
   show_quantity_on_receipt: boolean

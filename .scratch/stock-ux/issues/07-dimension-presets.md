@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Migration v4 seeds the three defaults
 - [ ] get/update settings round-trip the list; update IPC validates (non-empty, unique, ≤20)

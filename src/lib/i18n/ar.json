@@ -134,6 +134,9 @@
     "quantityOnReceiptHelp": "يعرض الكمية بجانب سعر الوحدة لكل صنف.",
     "preview": "معاينة الإيصال",
     "previewHelp": "هذا هو بالضبط ما سيُطبع.",
+    "dimensionPresets": "المقاسات الجاهزة",
+    "dimensionPresetsHelp": "تظهر هذه المقاسات بنقرة واحدة عند إنشاء منتج. يمكنك إضافة أو إزالة أي مقاس في أي وقت.",
+    "dimensionPresetPlaceholder": "مثال: 200x200",
     "saved": "تم حفظ الإعدادات",
     "uploadFailed": "تعذّر رفع الشعار.",
     "comingSoon": "سيكون هذا القسم متاحًا قريبًا."

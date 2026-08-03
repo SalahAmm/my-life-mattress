@@ -104,13 +104,13 @@ describe('SettingsPage receipt appearance editor', () => {
     await waitFor(() => expect(mockApi.settings.uploadLogo).toHaveBeenCalled())
   })
 
-  it('renders all seven tabs with only Reçu enabled', async () => {
+  it('renders all seven tabs; Reçu and Produits & Catégories enabled', async () => {
     renderSettings()
     await screen.findByTitle('Aperçu du reçu')
     for (const tab of ['Général', 'Produits & Catégories', 'Paiement', 'Reçu', 'Imprimante', 'Utilisateurs', 'Données']) {
       const trigger = screen.getByRole('tab', { name: tab })
       expect(trigger).toBeInTheDocument()
-      if (tab !== 'Reçu') {
+      if (tab !== 'Reçu' && tab !== 'Produits & Catégories') {
         expect(trigger).toHaveAttribute('data-disabled')
       }
     }
