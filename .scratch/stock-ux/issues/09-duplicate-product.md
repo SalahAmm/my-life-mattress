@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Row action opens the form pre-filled; save creates a new product
 - [ ] Stock quantities start at 0 on the copy

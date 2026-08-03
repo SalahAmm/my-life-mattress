@@ -194,6 +194,25 @@ describe('StockPage (ticket 08)', () => {
     expect(input.name).toBe('Matelas Elite V2')
   })
 
+  it('duplicating a product pre-fills the form and creates a new product with zero stock', async () => {
+    renderStock()
+    await screen.findByRole('heading', { name: 'Rafik' })
+    const user = userEvent.setup()
+    const row = screen.getByText('Matelas Elite').closest('div') as HTMLElement
+    await user.click(within(row).getByLabelText('Dupliquer'))
+    expect((await screen.findAllByText('Ajouter un produit')).length).toBeGreaterThanOrEqual(1)
+    const nameInput = screen.getByLabelText('Nom du produit') as HTMLInputElement
+    expect(nameInput.value).toBe('Matelas Elite')
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le produit' }))
+    await waitFor(() => expect(mockApi.products.create).toHaveBeenCalled())
+    const input = vi.mocked(mockApi.products.create).mock.calls.at(-1)![0] as {
+      name: string
+      variants: { initialStock: number }[]
+    }
+    expect(input.name).toBe('Matelas Elite')
+    expect(input.variants.every((v) => v.initialStock === 0)).toBe(true)
+  })
+
   it('dimension preset chips fill the first empty variant dimension', async () => {
     renderStock()
     await screen.findByRole('heading', { name: 'Rafik' })

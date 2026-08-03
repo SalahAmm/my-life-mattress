@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ImagePlus, Loader2, Package, Pencil, Plus, Trash2, User } from 'lucide-react'
+import { Copy, ImagePlus, Loader2, Package, Pencil, Plus, Trash2, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDzd } from '@shared/money'
 import { variantLabel } from '@shared/variants'
@@ -60,6 +60,7 @@ export function StockPage() {
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<ProductWithVariants | null>(null)
+  const [copyProduct, setCopyProduct] = useState<ProductWithVariants | null>(null)
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
   const [filter, setFilter] = useState<StockFilter>('all')
   const [search, setSearch] = useState('')
@@ -232,6 +233,12 @@ export function StockPage() {
               onDeactivateProduct={(id) => deactivateMutation.mutate(id)}
               onEditProduct={(product) => {
                 setEditingProduct(product)
+                setCopyProduct(null)
+                setDialogOpen(true)
+              }}
+              onDuplicateProduct={(product) => {
+                setEditingProduct(null)
+                setCopyProduct(product)
                 setDialogOpen(true)
               }}
               deactivateLabel={t('stock.removeSupplier')}
@@ -249,6 +256,12 @@ export function StockPage() {
               onDeactivateProduct={(id) => deactivateMutation.mutate(id)}
               onEditProduct={(product) => {
                 setEditingProduct(product)
+                setCopyProduct(null)
+                setDialogOpen(true)
+              }}
+              onDuplicateProduct={(product) => {
+                setEditingProduct(null)
+                setCopyProduct(product)
                 setDialogOpen(true)
               }}
               deactivateLabel=""
@@ -259,10 +272,11 @@ export function StockPage() {
         </div>
       )}
       <AddProductDialog
-        key={editingProduct?.id ?? 'new'}
+        key={editingProduct?.id ?? copyProduct?.id ?? 'new'}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         initial={editingProduct}
+        copyOf={copyProduct}
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
         suppliers={suppliers.map((s) => ({ id: s.id, name: s.name }))}
       />
@@ -278,6 +292,7 @@ function SupplierGroup({
   onDeactivateSupplier,
   onDeactivateProduct,
   onEditProduct,
+  onDuplicateProduct,
   deactivateLabel,
   deactivateTitle,
   deactivateHint,
@@ -288,6 +303,7 @@ function SupplierGroup({
   onDeactivateSupplier?: () => void
   onDeactivateProduct: (id: number) => void
   onEditProduct: (product: ProductWithVariants) => void
+  onDuplicateProduct: (product: ProductWithVariants) => void
   deactivateLabel: string
   deactivateTitle: string
   deactivateHint: string
@@ -360,6 +376,15 @@ function SupplierGroup({
                   onClick={() => onEditProduct(product)}
                 >
                   <Pencil className="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  aria-label={t('stock.duplicate')}
+                  onClick={() => onDuplicateProduct(product)}
+                >
+                  <Copy className="size-3.5" />
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -466,37 +491,40 @@ function AddProductDialog({
   open,
   onOpenChange,
   initial,
+  copyOf,
   categories,
   suppliers,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   initial?: ProductWithVariants | null
+  copyOf?: ProductWithVariants | null
   categories: { id: number; name: string }[]
   suppliers: { id: number; name: string }[]
 }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const editing = Boolean(initial)
+  const prefill = initial ?? copyOf ?? null
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: () => api.settings.get(),
   })
-  const [name, setName] = useState(initial?.name ?? '')
-  const [categoryId, setCategoryId] = useState<string>(initial?.category_id ? String(initial.category_id) : 'none')
-  const [supplierId, setSupplierId] = useState<string>(initial?.supplier_id ? String(initial.supplier_id) : 'none')
+  const [name, setName] = useState(prefill?.name ?? '')
+  const [categoryId, setCategoryId] = useState<string>(prefill?.category_id ? String(prefill.category_id) : 'none')
+  const [supplierId, setSupplierId] = useState<string>(prefill?.supplier_id ? String(prefill.supplier_id) : 'none')
   const [newSupplier, setNewSupplier] = useState('')
   const [showNewSupplier, setShowNewSupplier] = useState(false)
-  const [imagePath, setImagePath] = useState<string | null>(initial?.image_path ?? null)
+  const [imagePath, setImagePath] = useState<string | null>(prefill?.image_path ?? null)
   const [variants, setVariants] = useState<NewVariantInput[]>(
-    initial && initial.variants.length > 0
-      ? initial.variants.map((v) => ({
+    prefill && prefill.variants.length > 0
+      ? prefill.variants.map((v) => ({
           id: v.id,
           dimension: v.dimension,
           name: v.name,
           price: v.price,
           sku: v.sku,
-          initialStock: v.quantity_on_hand,
+          initialStock: initial ? v.quantity_on_hand : 0,
           lowStockThreshold: v.low_stock_threshold,
         }))
       : [{ dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }],
