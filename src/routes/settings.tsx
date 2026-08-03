@@ -46,8 +46,13 @@ function ReceiptTab() {
   })
 
   const saveMutation = useMutation({
-    mutationFn: (input: { storeName: string; defaultDepositPercentages: number[]; showDeliveryNote: boolean }) =>
-      api.settings.updateReceipt(input),
+    mutationFn: (input: {
+      storeName: string
+      defaultDepositPercentages: number[]
+      showDeliveryNote: boolean
+      showPhoneOnReceipt: boolean
+      showQuantityOnReceipt: boolean
+    }) => api.settings.updateReceipt(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['settings'] })
       toast.success(t('settings.saved'))
@@ -70,16 +75,23 @@ function ReceiptTab() {
 
   const previewHtml = saleReceiptHtml(sampleSaleForPreview(), settings)
 
-  const toggleDeliveryNote = (checked: boolean) => {
+  const save = (patch: {
+    storeName?: string
+    showDeliveryNote?: boolean
+    showPhoneOnReceipt?: boolean
+    showQuantityOnReceipt?: boolean
+  }) => {
     saveMutation.mutate({
-      storeName: settings.store_name,
+      storeName: patch.storeName ?? settings.store_name,
       defaultDepositPercentages: settings.default_deposit_percentages,
-      showDeliveryNote: checked,
+      showDeliveryNote: patch.showDeliveryNote ?? settings.show_delivery_note,
+      showPhoneOnReceipt: patch.showPhoneOnReceipt ?? settings.show_phone_on_receipt,
+      showQuantityOnReceipt: patch.showQuantityOnReceipt ?? settings.show_quantity_on_receipt,
     })
   }
 
   return (
-    <div className="grid min-h-0 grid-cols-2 gap-4">
+    <div className="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-2">
       <div className="space-y-4">
         <Card>
           <CardHeader>
@@ -87,15 +99,13 @@ function ReceiptTab() {
             <CardDescription>{t('settings.logoHelp')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {settings.logo_path && (
-              <div className="flex h-20 items-center justify-center rounded-md border bg-white p-2">
-                <img
-                  src={logoUrlFor(settings.logo_path) ?? ''}
-                  alt="logo"
-                  className="max-h-full max-w-full object-contain"
-                />
-              </div>
-            )}
+            <div className="flex h-20 items-center justify-center rounded-none border bg-white p-2">
+              <img
+                src={logoUrlFor(settings.logo_path)}
+                alt="logo"
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
             <Button variant="outline" onClick={() => logoMutation.mutate()} disabled={logoMutation.isPending}>
               {logoMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus />}
               {t('settings.uploadLogo')}
@@ -104,18 +114,28 @@ function ReceiptTab() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>{t('settings.deliveryNote')}</CardTitle>
-            <CardDescription>{t('settings.deliveryNoteHelp')}</CardDescription>
+            <CardTitle>{t('settings.receiptFields')}</CardTitle>
+            <CardDescription>{t('settings.receiptFieldsHelp')}</CardDescription>
           </CardHeader>
-          <CardContent>
-            <label className="flex cursor-pointer items-center gap-2">
-              <Checkbox
-                checked={settings.show_delivery_note}
-                onCheckedChange={(checked) => toggleDeliveryNote(Boolean(checked))}
-              />
-              <span className="text-sm font-medium">{t('settings.deliveryNote')}</span>
-              <Check className="ms-auto size-4 text-muted-foreground" />
-            </label>
+          <CardContent className="space-y-3">
+            <ToggleRow
+              label={t('settings.deliveryNote')}
+              hint={t('settings.deliveryNoteHelp')}
+              checked={settings.show_delivery_note}
+              onChange={(checked) => save({ showDeliveryNote: checked })}
+            />
+            <ToggleRow
+              label={t('settings.phoneOnReceipt')}
+              hint={t('settings.phoneOnReceiptHelp')}
+              checked={settings.show_phone_on_receipt}
+              onChange={(checked) => save({ showPhoneOnReceipt: checked })}
+            />
+            <ToggleRow
+              label={t('settings.quantityOnReceipt')}
+              hint={t('settings.quantityOnReceiptHelp')}
+              checked={settings.show_quantity_on_receipt}
+              onChange={(checked) => save({ showQuantityOnReceipt: checked })}
+            />
           </CardContent>
         </Card>
       </div>
@@ -125,7 +145,7 @@ function ReceiptTab() {
           <CardDescription>{t('settings.previewHelp')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[520px] rounded-md border bg-white">
+          <ScrollArea className="h-[520px] rounded-none border bg-white">
             <iframe
               title={t('settings.preview')}
               sandbox=""
@@ -136,5 +156,28 @@ function ReceiptTab() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+function ToggleRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string
+  hint: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-2">
+      <Checkbox checked={checked} onCheckedChange={(value) => onChange(Boolean(value))} className="mt-0.5" />
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-xs text-muted-foreground">{hint}</span>
+      </span>
+      <Check className="ms-auto mt-1 size-4 text-muted-foreground" />
+    </label>
   )
 }

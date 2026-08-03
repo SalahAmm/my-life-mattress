@@ -15,8 +15,8 @@ export const PREVIEW_FONT_URLS: ReceiptFontUrls = {
   },
 }
 
-export function logoUrlFor(logoPath: string | null): string | null {
-  if (!logoPath) return null
+export function logoUrlFor(logoPath: string | null): string {
+  if (!logoPath) return 'brand/logo.png'
   const name = logoPath.split(/[\\/]/).pop() ?? ''
   return `app-asset://logos/${encodeURIComponent(name)}`
 }

@@ -1,0 +1,53 @@
+import { contextBridge, ipcRenderer } from 'electron'
+import type { ElectronAPI, IpcResult } from '@shared/ipc'
+
+async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
+  const result = (await ipcRenderer.invoke(channel, payload)) as IpcResult<T>
+  if (!result.ok) {
+    const error = new Error(result.error.message) as Error & { code?: string }
+    error.code = result.error.code
+    throw error
+  }
+  return result.data
+}
+
+const api: ElectronAPI = {
+  auth: {
+    status: () => invoke('auth:status'),
+    setupOwner: (input) => invoke('auth:setupOwner', input),
+    login: (username, password) => invoke('auth:login', { username, password }),
+    logout: () => invoke('auth:logout'),
+    recoverOwner: (input) => invoke('auth:recoverOwner', input),
+  },
+  products: {
+    list: () => invoke('products:list'),
+    listFull: () => invoke('products:listFull'),
+    create: (input) => invoke('products:create', input),
+    deactivate: (id) => invoke('products:deactivate', id),
+  },
+  suppliers: {
+    list: () => invoke('suppliers:list'),
+    create: (input) => invoke('suppliers:create', input),
+  },
+  categories: {
+    list: () => invoke('categories:list'),
+  },
+  sales: {
+    create: (payload) => invoke('sales:create', payload),
+    get: (id) => invoke('sales:get', id),
+    recent: (limit) => invoke('sales:recent', limit),
+    addPayment: (input) => invoke('sales:addPayment', input),
+    setStatus: (input) => invoke('sales:setStatus', input),
+    cancel: (input) => invoke('sales:cancel', input.saleId),
+  },
+  printing: {
+    printReceipt: (saleId) => invoke('printing:printReceipt', saleId),
+  },
+  settings: {
+    get: () => invoke('settings:get'),
+    updateReceipt: (input) => invoke('settings:updateReceipt', input),
+    uploadLogo: () => invoke('settings:uploadLogo'),
+  },
+}
+
+contextBridge.exposeInMainWorld('electronAPI', api)

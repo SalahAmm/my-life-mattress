@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Theme system and brand tokens
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Logo renders in Login, sidebar, Settings preview, and printed receipt (data URI in print, app-asset URL in preview)
 - [ ] Receipt toggles (phone/quantity/delivery note) and store name persist and change actual printed output

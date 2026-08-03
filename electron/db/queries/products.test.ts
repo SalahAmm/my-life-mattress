@@ -1,0 +1,78 @@
+// @vitest-environment node
+import { describe, expect, it } from 'vitest'
+import { createDatabase } from '../connection'
+import { createCategory } from './categories'
+import { createSupplier } from './suppliers'
+import {
+  createProduct,
+  deactivateProduct,
+  listCounterProducts,
+  listProducts,
+} from './products'
+import { createUser } from './users'
+import { restock } from './stock'
+import type { NewProductInput } from '@shared/types'
+
+function database() {
+  return createDatabase(':memory:')
+}
+
+function seed(db: ReturnType<typeof createDatabase>) {
+  const cat = createCategory(db, { name: 'Matelas', sortOrder: 1 })
+  const sup = createSupplier(db, { name: 'Rafik', phone: null })
+  const input: NewProductInput = {
+    name: 'Matelas Orthopédique Elite',
+    categoryId: cat,
+    supplierId: sup,
+    variants: [
+      { dimension: '160x190', price: 45000, sku: null, initialStock: 4, lowStockThreshold: 2 },
+      { dimension: '180x200', price: 55000, sku: null, initialStock: 0, lowStockThreshold: 1 },
+    ],
+  }
+  const productId = createProduct(db, input)
+  return { db, productId, cat, sup }
+}
+
+describe('products queries', () => {
+  it('creates a product with variants and stock items', () => {
+    const { db } = seed(database())
+    const products = listProducts(db)
+    expect(products).toHaveLength(1)
+    expect(products[0].name).toBe('Matelas Orthopédique Elite')
+    expect(products[0].category_name).toBe('Matelas')
+    expect(products[0].supplier_name).toBe('Rafik')
+    expect(products[0].variants).toHaveLength(2)
+    const [v1, v2] = products[0].variants
+    expect(v1.quantity_on_hand).toBe(4)
+    expect(v1.out_of_stock).toBe(false)
+    expect(v2.quantity_on_hand).toBe(0)
+    expect(v2.out_of_stock).toBe(true)
+  })
+
+  it('counter products never expose raw stock quantities', () => {
+    const { db } = seed(database())
+    const counter = listCounterProducts(db)
+    expect(counter).toHaveLength(1)
+    expect(counter[0].variants[0]).not.toHaveProperty('quantity_on_hand')
+    expect(counter[0].variants[0].out_of_stock).toBe(false)
+    expect(counter[0].variants[1].out_of_stock).toBe(true)
+  })
+
+  it('hides inactive products from counter and stock lists', () => {
+    const { db, productId } = seed(database())
+    deactivateProduct(db, productId)
+    expect(listProducts(db)).toHaveLength(0)
+    expect(listCounterProducts(db)).toHaveLength(0)
+  })
+
+  it('stock movements reconcile with quantity on hand', () => {
+    const { db } = seed(database())
+    const user = createUser(db, { username: 'u', passwordHash: 'x', role: 'owner' })
+    const product = listProducts(db)[0]
+    const variant = product.variants[0]
+    const movement = restock(db, { stockItemId: variant.id, quantity: 3, createdBy: user })
+    expect(movement.change).toBe(3)
+    const after = listProducts(db)[0].variants[0]
+    expect(after.quantity_on_hand).toBe(7)
+  })
+})
