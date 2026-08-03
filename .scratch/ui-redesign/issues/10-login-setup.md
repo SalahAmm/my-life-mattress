@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Theme system and brand tokens; 02 — Brand logo and editable receipt appearance
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Login and setup screens show the supplied logo and brand styling
 - [ ] First-run routing (setup vs login) and recovery flow unchanged and tested

@@ -1,8 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bed, KeyRound, Loader2, Lock, User } from 'lucide-react'
+import { KeyRound, Loader2, Lock, User } from 'lucide-react'
 import { AuthScreenTopBar } from '@/components/auth-screen-top-bar'
+import { BrandLogo } from '@/components/brand-logo'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -37,9 +38,7 @@ export function LoginScreen() {
       <AuthScreenTopBar />
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-lg bg-gold">
-            <Bed className="size-8 text-white" />
-          </div>
+          <BrandLogo className="mx-auto mb-3 h-14" />
           <CardTitle className="text-xl">{t('login.title')}</CardTitle>
           <CardDescription>{t('login.subtitle')}</CardDescription>
         </CardHeader>

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Theme system and brand tokens; 05 — Management primitives
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Tab bar renders per reference; only implemented tabs enabled
 - [ ] Reçu tab (editor + live preview) fully usable in FR/AR and both themes

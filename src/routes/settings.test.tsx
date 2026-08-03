@@ -103,4 +103,16 @@ describe('SettingsPage receipt appearance editor', () => {
     await user.click(screen.getByRole('button', { name: /Téléverser le logo/ }))
     await waitFor(() => expect(mockApi.settings.uploadLogo).toHaveBeenCalled())
   })
+
+  it('renders all seven tabs with only Reçu enabled', async () => {
+    renderSettings()
+    await screen.findByTitle('Aperçu du reçu')
+    for (const tab of ['Général', 'Produits & Catégories', 'Paiement', 'Reçu', 'Imprimante', 'Utilisateurs', 'Données']) {
+      const trigger = screen.getByRole('tab', { name: tab })
+      expect(trigger).toBeInTheDocument()
+      if (tab !== 'Reçu') {
+        expect(trigger).toHaveAttribute('data-disabled')
+      }
+    }
+  })
 })

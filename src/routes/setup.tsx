@@ -1,13 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Bed, Loader2, Lock, ShieldCheck, User } from 'lucide-react'
+import { Loader2, Lock, ShieldCheck, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { api } from '@/lib/ipc-client'
 import { AuthScreenTopBar } from '@/components/auth-screen-top-bar'
+import { BrandLogo } from '@/components/brand-logo'
 
 export function SetupScreen() {
   const { t } = useTranslation()
@@ -90,9 +91,7 @@ export function SetupScreen() {
       <AuthScreenTopBar />
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-lg bg-gold">
-            <Bed className="size-8 text-white" />
-          </div>
+          <BrandLogo className="mx-auto mb-3 h-14" />
           <CardTitle className="text-xl">{t('setup.title')}</CardTitle>
           <CardDescription>{t('setup.description')}</CardDescription>
         </CardHeader>
