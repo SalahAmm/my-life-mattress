@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Chip delete opens a confirmation dialog; confirm calls setActive(false); cancel does nothing
 - [ ] Distinct FR/AR toast messages: product added/modified/deactivated, supplier added/removed, preset added

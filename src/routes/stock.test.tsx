@@ -163,12 +163,17 @@ describe('StockPage (ticket 08)', () => {
     expect(within(row).getByRole('button', { name: /Désactiver/ })).toBeInTheDocument()
   })
 
-  it('removing a supplier calls the owner-only setActive IPC', async () => {
+  it('removing a supplier asks for confirmation before deactivating', async () => {
     renderStock()
     await screen.findAllByText('Matelas Elite')
     const user = userEvent.setup()
     const chip = screen.getByRole('button', { name: /Rafik/ }).closest('span') as HTMLElement
     await user.click(within(chip).getByLabelText('Supprimer le fournisseur'))
+    expect(await screen.findByText('Supprimer ce fournisseur ?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Annuler' }))
+    expect(mockApi.suppliers.setActive).not.toHaveBeenCalled()
+    await user.click(within(chip).getByLabelText('Supprimer le fournisseur'))
+    await user.click(await screen.findByRole('button', { name: 'Supprimer' }))
     await waitFor(() => expect(mockApi.suppliers.setActive).toHaveBeenCalledWith({ id: 1, active: false }))
   })
 

@@ -7,6 +7,17 @@ import { formatDzd } from '@shared/money'
 import { variantLabel } from '@shared/variants'
 import type { NewProductInput, NewVariantInput, ProductWithVariants } from '@shared/types'
 import { api } from '@/lib/ipc-client'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -28,14 +39,19 @@ function Chip({
   onClick,
   onRemove,
   removeLabel,
+  removeTitle,
+  removeHint,
   children,
 }: {
   active: boolean
   onClick: () => void
   onRemove?: () => void
   removeLabel?: string
+  removeTitle?: string
+  removeHint?: string
   children: ReactNode
 }) {
+  const { t } = useTranslation()
   return (
     <span
       className={cn(
@@ -47,14 +63,27 @@ function Chip({
         {children}
       </button>
       {onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={removeLabel}
-          className="px-1.5 py-1.5 text-xs opacity-60 hover:opacity-100"
-        >
-          <Trash2 className="size-3" />
-        </button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              type="button"
+              aria-label={removeLabel}
+              className="px-1.5 py-1.5 text-xs opacity-60 hover:opacity-100"
+            >
+              <Trash2 className="size-3" />
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{removeTitle}</AlertDialogTitle>
+              <AlertDialogDescription>{removeHint}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+              <AlertDialogAction onClick={onRemove}>{t('stock.remove')}</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </span>
   )
@@ -123,7 +152,7 @@ export function StockPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['stock-products'] })
       void queryClient.invalidateQueries({ queryKey: ['counter-products'] })
-      toast.success(t('stock.saved'))
+      toast.success(t('stock.productDeactivated'))
     },
   })
 
@@ -132,7 +161,7 @@ export function StockPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['suppliers'] })
       void queryClient.invalidateQueries({ queryKey: ['stock-products'] })
-      toast.success(t('stock.saved'))
+      toast.success(t('stock.supplierRemoved'))
     },
   })
 
@@ -257,6 +286,8 @@ export function StockPage() {
               removeSupplierMutation.mutate(s.id)
             }}
             removeLabel={t('stock.removeSupplier')}
+            removeTitle={t('stock.removeSupplierConfirm')}
+            removeHint={t('stock.removeSupplierConfirmHint')}
           >
             {s.name}
           </Chip>
@@ -395,7 +426,7 @@ function AddSupplierDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     mutationFn: (input: { name: string; phone: string | null }) => api.suppliers.create(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['suppliers'] })
-      toast.success(t('stock.saved'))
+      toast.success(t('stock.supplierAdded'))
       onOpenChange(false)
       setName('')
     },
@@ -520,7 +551,7 @@ function AddProductDialog({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['stock-products'] })
       void queryClient.invalidateQueries({ queryKey: ['counter-products'] })
-      toast.success(t('stock.saved'))
+      toast.success(editing ? t('stock.productUpdated') : t('stock.productAdded'))
       onOpenChange(false)
       setName('')
       setCategoryId('none')
@@ -585,7 +616,7 @@ function AddProductDialog({
       })
       .then(() => {
         void queryClient.invalidateQueries({ queryKey: ['settings'] })
-        toast.success(t('stock.saved'))
+        toast.success(t('stock.presetAdded'))
       })
   }
 
