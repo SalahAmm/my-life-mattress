@@ -17,6 +17,7 @@ import {
   createSale,
   getSale,
   listRecentSales,
+  listSales,
   setSaleStatus,
 } from '../db/queries/sales'
 import { getReceiptSettings, updateReceiptSettings } from '../db/queries/receipt-settings'
@@ -293,6 +294,17 @@ export function registerIpcHandlers(database: Database, authService: AuthService
   ipcMain.handle('sales:recent', wrap(async ({ payload }) => {
     requireSession(auth)
     return listRecentSales(db, z.number().int().min(1).max(200).default(20).parse(payload))
+  }))
+
+  ipcMain.handle('sales:list', wrap(async ({ payload }) => {
+    requireSession(auth)
+    const parsed = z
+      .object({ status: z.enum(['ordered', 'delivered', 'cancelled']).optional() })
+      .safeParse(payload ?? {})
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    return listSales(db, { status: parsed.data.status })
   }))
 
   ipcMain.handle('sales:addPayment', wrap(async ({ payload }) => {

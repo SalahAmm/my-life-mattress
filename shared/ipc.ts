@@ -82,6 +82,7 @@ export interface ElectronAPI {
     create(payload: NewSalePayload): Promise<number>
     get(id: number): Promise<SaleWithDetails>
     recent(limit: number): Promise<SaleWithDetails[]>
+    list(input: { status?: SaleStatus }): Promise<SaleWithDetails[]>
     addPayment(input: {
       saleId: number
       amount: number

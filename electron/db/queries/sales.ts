@@ -209,3 +209,10 @@ export function listRecentSales(db: Database, limit: number): SaleWithDetails[] 
   }[]
   return rows.map((r) => getSale(db, r.id))
 }
+
+export function listSales(db: Database, input: { status?: SaleStatus }): SaleWithDetails[] {
+  const rows = input.status
+    ? (db.prepare('SELECT id FROM sales WHERE status = ? ORDER BY id DESC').all(input.status) as { id: number }[])
+    : (db.prepare('SELECT id FROM sales ORDER BY id DESC').all() as { id: number }[])
+  return rows.map((r) => getSale(db, r.id))
+}

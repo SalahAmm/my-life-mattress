@@ -8,6 +8,7 @@ import {
   cancelSale,
   createSale,
   getSale,
+  listSales,
   setSaleStatus,
   type CreateSaleArgs,
 } from './sales'
@@ -216,8 +217,8 @@ describe('sales queries', () => {
     )
     expect(getSale(db, otherId).free_delivery).toBe(false)
   })
-
-  it('reuses an existing customer by phone number', () => {    const { db, owner, product } = seed(database())
+  it('reuses an existing customer by phone number', () => {
+    const { db, owner, product } = seed(database())
     const variant = product.variants[0]
     const item = [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }]
     createSale(db, saleArgs(owner, { customerPhone: '0550123456', items: item }))
@@ -225,5 +226,22 @@ describe('sales queries', () => {
     const count = db.prepare('SELECT COUNT(*) AS n FROM customers').get() as { n: number }
     expect(count.n).toBe(1)
     expect(getSale(db, secondId).customer_name).toBe('Ahmed Benali')
+  })
+
+  it('lists sales filtered by status with full details', () => {
+    const { db, owner, product } = seed(database())
+    const variant = product.variants[0]
+    const item = [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }]
+    const first = createSale(db, saleArgs(owner, { items: item, wilaya: 'Alger' }))
+    createSale(db, saleArgs(owner, { items: item, wilaya: 'Oran' }))
+    const delivered = createSale(db, saleArgs(owner, { items: item, wilaya: 'Blida' }))
+    setSaleStatus(db, delivered, 'delivered')
+    const ordered = listSales(db, { status: 'ordered' })
+    expect(ordered).toHaveLength(2)
+    expect(ordered[0].wilaya).toBe('Oran')
+    const all = listSales(db, {})
+    expect(all).toHaveLength(3)
+    expect(all.find((s) => s.id === first)?.items).toHaveLength(1)
+    expect(all.find((s) => s.id === first)?.remaining).toBe(45000)
   })
 })

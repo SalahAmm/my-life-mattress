@@ -40,6 +40,7 @@ const api: ElectronAPI = {
     create: (payload) => invoke('sales:create', payload),
     get: (id) => invoke('sales:get', id),
     recent: (limit) => invoke('sales:recent', limit),
+    list: (input) => invoke('sales:list', input),
     addPayment: (input) => invoke('sales:addPayment', input),
     setStatus: (input) => invoke('sales:setStatus', input),
     cancel: (input) => invoke('sales:cancel', input.saleId),
