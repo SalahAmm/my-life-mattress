@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { PageHeader } from '@/components/management/page-header'
+import { EmptyState } from '@/components/management/empty-state'
 
 export function StockPage() {
   const { t } = useTranslation()
@@ -45,18 +47,18 @@ export function StockPage() {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t('stock.title')}</h1>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus />
-          {t('stock.addProduct')}
-        </Button>
-      </div>
+      <PageHeader
+        title={t('stock.title')}
+        action={
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus />
+            {t('stock.addProduct')}
+          </Button>
+        }
+      />
       {products.length === 0 ? (
-        <Card className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-          <Package className="size-10" />
-          <p className="font-semibold text-foreground">{t('stock.noProducts')}</p>
-          <p className="text-sm">{t('stock.noProductsHint')}</p>
+        <Card className="flex flex-1 flex-col items-center justify-center">
+          <EmptyState icon={Package} title={t('stock.noProducts')} hint={t('stock.noProductsHint')} />
         </Card>
       ) : (
         <div className="min-h-0 flex-1 space-y-3 overflow-auto pe-1">

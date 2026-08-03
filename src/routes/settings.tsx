@@ -9,13 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { PageHeader } from '@/components/management/page-header'
 
 export function SettingsPage() {
   const { t } = useTranslation()
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <h1 className="text-xl font-bold">{t('settings.title')}</h1>
+      <PageHeader title={t('settings.title')} />
       <Tabs defaultValue="receipt" className="flex min-h-0 flex-1 flex-col">
         <TabsList className="w-fit">
           {(['general', 'categories', 'payment', 'receipt', 'printer', 'users', 'data'] as const).map((tab) => (

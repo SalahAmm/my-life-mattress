@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { PrintPreviewDialog } from '@/components/print-preview-dialog'
+import { PageHeader } from '@/components/management/page-header'
 
 interface CartLine {
   key: string
@@ -220,9 +221,7 @@ export function CounterPage({ session }: { session: Session }) {
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <h1 className="text-xl font-bold">{t('counter.title')}</h1>
-      </div>
+      <PageHeader title={t('counter.title')} />
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex gap-2">

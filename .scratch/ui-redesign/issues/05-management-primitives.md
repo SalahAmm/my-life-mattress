@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Theme system and brand tokens
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Primitives render correctly in FR/AR, light/dark, narrow/wide
 - [ ] Used by at least the Stock screen (proves adoption)
