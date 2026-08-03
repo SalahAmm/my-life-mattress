@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] No hardcoded strings remain in the dialog (audit + keys)
 - [ ] Dialog is wider with taller inputs; fields show 2-3 words comfortably

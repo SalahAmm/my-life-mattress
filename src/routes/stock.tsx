@@ -314,7 +314,7 @@ export function StockPage() {
       ) : (
         <div className="flex min-h-0 flex-1 flex-col border bg-card">
           <div className="min-h-0 flex-1 overflow-auto">
-            <Table>
+            <Table className="min-w-[760px]">
               <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow>
                   <TableHead className="w-14"></TableHead>
@@ -622,7 +622,7 @@ function AddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-4xl [&_input]:h-11 [&_input]:text-base">
         <DialogHeader>
           <DialogTitle>{editing ? t('stock.editProduct') : t('stock.addProduct')}</DialogTitle>
           <DialogDescription className="sr-only">
