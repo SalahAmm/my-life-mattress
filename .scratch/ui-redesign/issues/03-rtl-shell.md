@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Theme system and brand tokens
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: RTL shell`. Radix DirectionProvider wraps the app; sidebar passes side=right in Arabic; dir/lang set synchronously at module init (no LTR flash) + kept in sync; DirectionProvider syncs i18n singleton on mount (bug found by seam B test); pr-1 → pe-1 in counter/stock. Seams A/B/C green; suite 121/121; typecheck clean.
 
 - [ ] Switching to Arabic moves the sidebar to the right and mirrors layouts
 - [ ] No LTR flash on load; html lang/dir correct before render
