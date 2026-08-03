@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Theme system and brand tokens; 05 — Management primitives
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed with the UI redesign pass; tests lock the contract.
 
 - [ ] Tab bar renders per reference; only implemented tabs enabled
 - [ ] Reçu tab (editor + live preview) fully usable in FR/AR and both themes

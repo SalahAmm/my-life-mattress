@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Theme system and brand tokens; 02 — Brand logo and editable receipt appearance
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed with the UI redesign pass; tests lock the contract.
 
 - [ ] Login and setup screens show the supplied logo and brand styling
 - [ ] First-run routing (setup vs login) and recovery flow unchanged and tested
