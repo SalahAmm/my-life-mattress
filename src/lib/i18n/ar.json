@@ -141,6 +141,8 @@
   "stock": {
     "title": "المخزون",
     "addProduct": "إضافة منتج",
+    "productPhoto": "صورة المنتج",
+    "uploadPhoto": "إضافة صورة",
     "productName": "اسم المنتج",
     "productNamePlaceholder": "مثال: مرتبة إيليت لتقويم العظام",
     "category": "الفئة",

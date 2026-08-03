@@ -130,4 +130,12 @@ export const MIGRATIONS: { version: number; up: (db: Database) => void }[] = [
       `)
     },
   },
+  {
+    version: 3,
+    up(db) {
+      db.exec(`
+        ALTER TABLE products ADD COLUMN image_path TEXT;
+      `)
+    },
+  },
 ]

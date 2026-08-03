@@ -49,13 +49,20 @@ app.whenReady().then(() => {
     registerIpcHandlers(db, auth)
     createWindow()
 
-    const logosDir = path.join(app.getPath('userData'), 'logos')
+    const userData = app.getPath('userData')
+    const logosDir = path.join(userData, 'logos')
+    const productsDir = path.join(userData, 'products')
     protocol.handle('app-asset', (request) => {
       const url = new URL(request.url)
       const requested = decodeURIComponent(url.pathname).replace(/^[/\\]+/, '')
-      const resolved = path.normalize(path.join(logosDir, requested))
-      const logosDirNorm = path.normalize(logosDir)
-      if (!(resolved === logosDirNorm || resolved.startsWith(logosDirNorm + path.sep))) {
+      const [folder, ...rest] = requested.split(/[/\\]/)
+      const base = folder === 'logos' ? logosDir : folder === 'products' ? productsDir : null
+      if (!base) {
+        return new Response('Not found', { status: 404 })
+      }
+      const resolved = path.normalize(path.join(base, ...rest))
+      const baseNorm = path.normalize(base)
+      if (!(resolved === baseNorm || resolved.startsWith(baseNorm + path.sep))) {
         return new Response('Not found', { status: 404 })
       }
       return net.fetch(pathToFileUrl(resolved))

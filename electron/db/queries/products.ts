@@ -4,8 +4,8 @@ import type { CounterProduct, NewProductInput, ProductWithVariants } from '@shar
 export function createProduct(db: Database, input: NewProductInput): number {
   const create = db.transaction(() => {
     const result = db
-      .prepare('INSERT INTO products (name, category_id, supplier_id) VALUES (?, ?, ?)')
-      .run(input.name, input.categoryId, input.supplierId)
+      .prepare('INSERT INTO products (name, category_id, supplier_id, image_path) VALUES (?, ?, ?, ?)')
+      .run(input.name, input.categoryId, input.supplierId, input.imagePath ?? null)
     const productId = Number(result.lastInsertRowid)
     const insertVariant = db.prepare(
       'INSERT INTO product_variants (product_id, dimension, name, price, sku) VALUES (?, ?, ?, ?, ?)',
@@ -31,7 +31,7 @@ export function createProduct(db: Database, input: NewProductInput): number {
 
 const PRODUCT_QUERY = `
   SELECT
-    p.id, p.name, p.category_id, p.supplier_id, p.active,
+    p.id, p.name, p.category_id, p.supplier_id, p.image_path, p.active,
     c.name AS category_name,
     s.name AS supplier_name
   FROM products p
@@ -72,6 +72,7 @@ export function listProducts(db: Database): ProductWithVariants[] {
     name: string
     category_id: number | null
     supplier_id: number | null
+    image_path: string | null
     active: number
     category_name: string | null
     supplier_name: string | null
@@ -87,6 +88,7 @@ export function listProducts(db: Database): ProductWithVariants[] {
     category_name: row.category_name,
     supplier_id: row.supplier_id,
     supplier_name: row.supplier_name,
+    image_path: row.image_path,
     active: Boolean(row.active),
     variants: variants
       .filter((v) => v.product_id === row.id)
@@ -105,7 +107,12 @@ export function listProducts(db: Database): ProductWithVariants[] {
 }
 
 export function listCounterProducts(db: Database): CounterProduct[] {
-  const rows = db.prepare(PRODUCT_QUERY).all() as { id: number; name: string; category_id: number | null }[]
+  const rows = db.prepare(PRODUCT_QUERY).all() as {
+    id: number
+    name: string
+    category_id: number | null
+    image_path: string | null
+  }[]
   const variants = variantsFor(
     db,
     rows.map((r) => r.id),
@@ -114,6 +121,7 @@ export function listCounterProducts(db: Database): CounterProduct[] {
     id: row.id,
     name: row.name,
     category_id: row.category_id,
+    image_path: row.image_path,
     variants: variants
       .filter((v) => v.product_id === row.id)
       .map((v) => ({

@@ -97,10 +97,16 @@ describe('product payload validation', () => {
     expect(PRODUCT_SCHEMA.safeParse({ ...base, variants: [] }).success).toBe(false)
   })
 
-  it('rejects an empty dimension', () => {
+  it('rejects a variant with neither name nor dimension', () => {
     expect(
-      PRODUCT_SCHEMA.safeParse({ ...base, variants: [{ ...base.variants[0], dimension: ' ' }] }).success,
+      PRODUCT_SCHEMA.safeParse({ ...base, variants: [{ ...base.variants[0], dimension: ' ', name: '' }] }).success,
     ).toBe(false)
+  })
+
+  it('accepts a bed variant with a name and no dimension', () => {
+    expect(
+      PRODUCT_SCHEMA.safeParse({ ...base, variants: [{ ...base.variants[0], dimension: '', name: 'Sahara' }] }).success,
+    ).toBe(true)
   })
 })
 

@@ -108,4 +108,21 @@ describe('products queries', () => {
     expect(counter[0].variants[0].name).toBe('Sahara')
     expect(counter[0].variants[0].dimension).toBe('')
   })
+
+  it('migration v3: products carry an optional image path', () => {
+    const db = database()
+    const cols = db.prepare('PRAGMA table_info(products)').all() as { name: string }[]
+    expect(cols.map((c) => c.name)).toContain('image_path')
+    const productId = createProduct(db, {
+      name: 'Matelas Photo',
+      categoryId: null,
+      supplierId: null,
+      imagePath: 'C:/userData/products/p1.png',
+      variants: [{ dimension: '160x190', price: 45000, sku: null, initialStock: 1, lowStockThreshold: 0 }],
+    })
+    const product = listProducts(db).find((p) => p.id === productId)!
+    expect(product.image_path).toBe('C:/userData/products/p1.png')
+    const counter = listCounterProducts(db).find((p) => p.id === productId)!
+    expect(counter.image_path).toBe('C:/userData/products/p1.png')
+  })
 })

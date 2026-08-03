@@ -49,6 +49,7 @@ export interface ElectronAPI {
     listFull(): Promise<ProductWithVariants[]>
     create(input: NewProductInput): Promise<number>
     deactivate(id: number): Promise<void>
+    uploadImage(): Promise<string | null>
   }
   suppliers: {
     list(): Promise<Supplier[]>

@@ -36,6 +36,7 @@ export type Product = {
   name: string
   category_id: number | null
   supplier_id: number | null
+  image_path: string | null
   active: boolean
   created_at: string
 }
@@ -147,6 +148,7 @@ export interface ProductWithVariants {
   category_name: string | null
   supplier_id: number | null
   supplier_name: string | null
+  image_path: string | null
   active: boolean
   variants: ProductVariantWithStock[]
 }
@@ -167,6 +169,7 @@ export interface CounterProduct {
   id: number
   name: string
   category_id: number | null
+  image_path: string | null
   variants: {
     id: number
     dimension: string
@@ -189,6 +192,7 @@ export interface NewProductInput {
   name: string
   categoryId: number | null
   supplierId: number | null
+  imagePath?: string | null
   variants: NewVariantInput[]
 }
 

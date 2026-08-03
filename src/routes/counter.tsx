@@ -9,6 +9,7 @@ import type { CounterProduct, NewSalePayload, SaleWithDetails, Session } from '@
 import { api } from '@/lib/ipc-client'
 import { saleReceiptHtml } from '@/lib/receipt-preview'
 import { useIsNarrow } from '@/hooks/use-narrow'
+import { productImageUrl } from '@/lib/product-image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -710,12 +711,19 @@ function ProductCard({
   zeroStockLabel: string
 }) {
   const minPrice = product.variants.length > 0 ? Math.min(...product.variants.map((v) => v.price)) : 0
+  const imageUrl = productImageUrl(product.image_path)
   return (
-    <div className={expanded ? 'rounded-md border-2 border-primary p-2' : 'rounded-md border p-2'}>
+    <div className={expanded ? 'rounded-none border-2 border-primary p-2' : 'rounded-none border p-2'}>
       <button type="button" onClick={onToggle} className="w-full text-start">
-        <div className="flex h-16 items-center justify-center rounded-md bg-muted text-2xl font-bold text-muted-foreground">
-          {product.name.charAt(0).toUpperCase()}
-        </div>
+        {imageUrl ? (
+          <div className="flex h-16 items-center justify-center overflow-hidden rounded-none bg-muted">
+            <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
+          </div>
+        ) : (
+          <div className="flex h-16 items-center justify-center rounded-none bg-muted text-2xl font-bold text-muted-foreground">
+            {product.name.charAt(0).toUpperCase()}
+          </div>
+        )}
         <p className="mt-2 truncate text-sm font-semibold" dir="auto">
           {product.name}
         </p>

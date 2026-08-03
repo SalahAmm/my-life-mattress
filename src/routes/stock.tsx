@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Package, Plus, Trash2, User } from 'lucide-react'
+import { ImagePlus, Loader2, Package, Plus, Trash2, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDzd } from '@shared/money'
 import { variantLabel } from '@shared/variants'
@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator'
 import { PageHeader } from '@/components/management/page-header'
 import { EmptyState } from '@/components/management/empty-state'
 import { KpiCard } from '@/components/management/kpi-card'
+import { productImageUrl } from '@/lib/product-image'
 
 type StockFilter = 'all' | 'in' | 'low' | 'out'
 
@@ -260,6 +261,17 @@ function SupplierGroup({
           <Card key={product.id}>
             <CardContent className="space-y-2 p-4">
               <div className="flex items-center gap-2">
+                {productImageUrl(product.image_path) ? (
+                  <img
+                    src={productImageUrl(product.image_path)!}
+                    alt={product.name}
+                    className="size-10 shrink-0 rounded-none border object-cover"
+                  />
+                ) : (
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-none border bg-muted text-sm font-bold text-muted-foreground">
+                    {product.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
                 <p className="font-semibold" dir="auto">
                   {product.name}
                 </p>
@@ -383,9 +395,17 @@ function AddProductDialog({
   const [supplierId, setSupplierId] = useState<string>('none')
   const [newSupplier, setNewSupplier] = useState('')
   const [showNewSupplier, setShowNewSupplier] = useState(false)
+  const [imagePath, setImagePath] = useState<string | null>(null)
   const [variants, setVariants] = useState<NewVariantInput[]>([
     { dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 },
   ])
+
+  const uploadImageMutation = useMutation({
+    mutationFn: () => api.products.uploadImage(),
+    onSuccess: (path) => {
+      if (path) setImagePath(path)
+    },
+  })
 
   const createSupplierMutation = useMutation({
     mutationFn: (input: { name: string; phone: string | null }) => api.suppliers.create(input),
@@ -403,6 +423,7 @@ function AddProductDialog({
       setSupplierId('none')
       setNewSupplier('')
       setShowNewSupplier(false)
+      setImagePath(null)
       setVariants([{ dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }])
     },
     onError: (error: Error) => toast.error(error.message),
@@ -425,7 +446,8 @@ function AddProductDialog({
       name: name.trim(),
       categoryId: categoryId === 'none' ? null : Number(categoryId),
       supplierId: supplier,
-      variants: variants.map((v) => ({ ...v, price: Math.round(v.price), initialStock: Math.round(v.initialStock), lowStockThreshold: Math.round(v.lowStockThreshold) })),
+      imagePath,
+      variants: variants.map((v) => ({ ...v, name: v.name || null, price: Math.round(v.price), initialStock: Math.round(v.initialStock), lowStockThreshold: Math.round(v.lowStockThreshold) })),
     })
   }
 
@@ -441,6 +463,26 @@ function AddProductDialog({
           <DialogDescription className="sr-only">{t('stock.addProduct')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-none border bg-muted">
+              {imagePath ? (
+                <img src={productImageUrl(imagePath)!} alt={t('stock.productPhoto')} className="h-full w-full object-cover" />
+              ) : (
+                <ImagePlus className="size-6 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1 space-y-2">
+              <Button variant="outline" onClick={() => uploadImageMutation.mutate()} disabled={uploadImageMutation.isPending}>
+                {uploadImageMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <ImagePlus />}
+                {t('stock.uploadPhoto')}
+              </Button>
+              {imagePath && (
+                <Button variant="ghost" size="sm" onClick={() => setImagePath(null)}>
+                  {t('common.cancel')}
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="product-name">{t('stock.productName')}</Label>
             <Input id="product-name" dir="auto" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('stock.productNamePlaceholder')} />

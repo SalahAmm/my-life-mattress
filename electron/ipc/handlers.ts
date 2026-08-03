@@ -98,10 +98,12 @@ export const PRODUCT_SCHEMA = z.object({
   name: z.string().trim().min(1).max(200),
   categoryId: z.number().int().positive().nullable(),
   supplierId: z.number().int().positive().nullable(),
+  imagePath: z.string().trim().max(500).nullable().optional(),
   variants: z
     .array(
       z.object({
-        dimension: z.string().trim().min(1).max(50),
+        dimension: z.string().trim().max(50),
+        name: z.string().trim().max(100).nullable().optional(),
         price: z.number().int().min(0).max(100_000_000),
         sku: z.string().trim().max(100).nullable(),
         initialStock: z.number().int().min(0).max(1_000_000),
@@ -110,7 +112,10 @@ export const PRODUCT_SCHEMA = z.object({
     )
     .min(1)
     .max(100),
-})
+}).refine(
+  (payload) => payload.variants.every((v) => v.dimension.trim().length > 0 || (v.name ?? '').trim().length > 0),
+  { message: 'Variant requires a name or a dimension' },
+)
 
 export const SETTINGS_SCHEMA = z.object({
   storeName: z.string().trim().min(1).max(200),
@@ -176,6 +181,25 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     requireOwner(auth)
     const id = z.number().int().positive().parse(payload)
     deactivateProduct(db, id)
+  }))
+
+  ipcMain.handle('products:uploadImage', wrap(async () => {
+    requireOwner(auth)
+    const result = await dialog.showOpenDialog({
+      title: 'Choisir la photo du produit',
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+      properties: ['openFile'],
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+    const source = result.filePaths[0]
+    const ext = path.extname(source).toLowerCase()
+    const productsDir = path.join(app.getPath('userData'), 'products')
+    fs.mkdirSync(productsDir, { recursive: true })
+    const target = path.join(productsDir, `product-${Date.now()}${ext}`)
+    fs.copyFileSync(source, target)
+    return target
   }))
 
   ipcMain.handle('suppliers:list', wrap(async () => {

@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately (independent of 01).
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Migration v2 adds `image_path` to products (nullable)
 - [ ] products:uploadImage IPC (owner-only) copies the file and returns the path
