@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, Loader2, Minus, Plus, Printer, Ruler, ShoppingCart, Trash2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Loader2, Minus, Plus, Ruler, ShoppingCart, Trash2, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { depositFromPercentage, formatDzd, saleTotal } from '@shared/money'
 import { variantLabel } from '@shared/variants'
@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator'
 import { PrintPreviewDialog } from '@/components/print-preview-dialog'
 import { PageHeader } from '@/components/management/page-header'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 
 interface CartLine {
   key: string
@@ -28,6 +29,8 @@ interface CartLine {
   detail: string
   quantity: number
   unitPrice: number
+  lowStock?: boolean
+  availableLow?: number | null
 }
 
 type PaymentSelection =
@@ -48,20 +51,28 @@ export function CounterPage({ session }: { session: Session }) {
     queryKey: ['categories'],
     queryFn: () => api.categories.list(),
   })
+  const { data: topSellers = [] } = useQuery({
+    queryKey: ['top-sellers'],
+    queryFn: () => api.products.topSellers(),
+  })
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: () => api.settings.get(),
   })
 
   const [search, setSearch] = useState('')
-  const [activeCategory, setActiveCategory] = useState<number | 'all'>('all')
-  const [expandedProduct, setExpandedProduct] = useState<number | null>(null)
+  const [activeCategory, setActiveCategory] = useState<number | null>(null)
+  const [chooserProduct, setChooserProduct] = useState<CounterProduct | null>(null)
+  const [chooserName, setChooserName] = useState<string | null>(null)
+  const [chooserDimension, setChooserDimension] = useState<string | null>(null)
   const [cart, setCart] = useState<CartLine[]>([])
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [payment, setPayment] = useState<PaymentSelection | null>(null)
   const [customDialogOpen, setCustomDialogOpen] = useState(false)
   const [customDimension, setCustomDimension] = useState('')
+  const [customName, setCustomName] = useState('')
+  const [customNote, setCustomNote] = useState('')
   const [customPrice, setCustomPrice] = useState('')
   const [customPaymentOpen, setCustomPaymentOpen] = useState(false)
   const [customPaymentMode, setCustomPaymentMode] = useState<'percent' | 'amount'>('percent')
@@ -90,15 +101,29 @@ export function CounterPage({ session }: { session: Session }) {
   }, [payment, total])
   const remaining = total - deposit
 
+  const nearEndLine = useMemo(() => cart.find((l) => l.lowStock), [cart])
+
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase()
     return products.filter((p) => {
-      if (activeCategory !== 'all' && p.category_id !== activeCategory) return false
+      if (activeCategory !== null && p.category_id !== activeCategory) return false
       if (!query) return true
       if (p.name.toLowerCase().includes(query)) return true
-      return p.variants.some((v) => v.dimension.toLowerCase().includes(query))
+      return p.variants.some(
+        (v) =>
+          v.dimension.toLowerCase().includes(query) ||
+          (v.name ?? '').toLowerCase().includes(query),
+      )
     })
   }, [products, search, activeCategory])
+
+  const mainView = activeCategory === null && !search.trim()
+
+  const openChooser = (product: CounterProduct) => {
+    setChooserProduct(product)
+    setChooserName(null)
+    setChooserDimension(null)
+  }
 
   const addToCart = (line: Omit<CartLine, 'quantity'> & { quantity?: number }) => {
     setCart((prev) => {
@@ -155,6 +180,7 @@ export function CounterPage({ session }: { session: Session }) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['counter-products'] })
+      void queryClient.invalidateQueries({ queryKey: ['top-sellers'] })
     },
   })
 
@@ -196,7 +222,6 @@ export function CounterPage({ session }: { session: Session }) {
     setCustomerName('')
     setCustomerPhone('')
     setPayment(null)
-    setExpandedProduct(null)
   }
 
   const addCustomItem = () => {
@@ -205,9 +230,10 @@ export function CounterPage({ session }: { session: Session }) {
       toast.error(t('counter.invalidPrice'))
       return
     }
-    const description = `Dimension Personnalisée: ${customDimension.trim()}`
+    const parts = [customName.trim(), `Dimension Personnalisée: ${customDimension.trim()}`].filter(Boolean)
+    const description = [parts.join(' — '), customNote.trim()].filter(Boolean).join(' · ')
     addToCart({
-      key: `custom:${customDimension.trim()}`,
+      key: `custom:${description}`,
       productVariantId: null,
       name: t('counter.customDimension'),
       detail: description,
@@ -215,6 +241,8 @@ export function CounterPage({ session }: { session: Session }) {
     })
     setCustomDialogOpen(false)
     setCustomDimension('')
+    setCustomName('')
+    setCustomNote('')
     setCustomPrice('')
   }
 
@@ -245,6 +273,29 @@ export function CounterPage({ session }: { session: Session }) {
 
   const saleIsValid = cart.length > 0 && !saleMutation.isPending && previewSale === null
 
+  const checkoutPanel = (
+    <CheckoutPanel
+      cart={cart}
+      onSetQuantity={setQuantity}
+      onRemoveLine={removeLine}
+      customerName={customerName}
+      onCustomerName={setCustomerName}
+      customerPhone={customerPhone}
+      onCustomerPhone={setCustomerPhone}
+      payment={payment}
+      onPayment={setPayment}
+      onCustomPayment={() => setCustomPaymentOpen(true)}
+      depositPresets={settings?.default_deposit_percentages ?? []}
+      total={total}
+      deposit={deposit}
+      remaining={remaining}
+      depositLabel={depositLabel}
+      saleIsValid={saleIsValid}
+      saving={saleMutation.isPending}
+      onSave={() => saleMutation.mutate()}
+    />
+  )
+
   return (
     <div className="flex h-full flex-col gap-4">
       <PageHeader title={t('counter.title')} />
@@ -262,86 +313,99 @@ export function CounterPage({ session }: { session: Session }) {
               {t('counter.customDimension')}
             </Button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant={activeCategory === 'all' ? 'default' : 'outline'}
-              onClick={() => setActiveCategory('all')}
-            >
-              {t('counter.allCategories')}
-            </Button>
-            {categories.map((category) => (
-              <Button
-                key={category.id}
-                size="sm"
-                variant={activeCategory === category.id ? 'default' : 'outline'}
-                onClick={() => setActiveCategory(category.id)}
-              >
-                {category.name}
-              </Button>
-            ))}
-          </div>
-          <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-3 gap-3 overflow-auto pe-1 xl:grid-cols-4">
-            {filteredProducts.length === 0 && (
-              <div className="col-span-full flex flex-col items-center gap-2 py-16 text-center">
-                <ShoppingCart className="size-10 text-muted-foreground" />
-                <p className="font-semibold">{t('counter.noProducts')}</p>
-                <p className="text-sm text-muted-foreground">
-                  {session.role === 'owner' ? t('counter.noProductsOwner') : t('counter.noProductsEmployee')}
-                </p>
+          {nearEndLine && (
+            <div className="flex items-center gap-2 border border-warning/40 bg-warning/15 px-3 py-2 text-sm font-medium">
+              <AlertTriangle className="size-4 shrink-0 text-warning" />
+              <span>
+                {t('counter.nearEnd')} : {nearEndLine.name} {nearEndLine.detail} —{' '}
+                {nearEndLine.availableLow != null ? t('counter.onlyLeft', { n: nearEndLine.availableLow }) : t('counter.rupture')}
+              </span>
+            </div>
+          )}
+          {mainView ? (
+            <>
+              {topSellers.length > 0 && (
+                <div>
+                  <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{t('counter.topSellers')}</h2>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {topSellers.map((seller) => {
+                      const product = products.find((p) => p.id === seller.id)
+                      if (!product) return null
+                      const imageUrl = productImageUrl(product.image_path)
+                      return (
+                        <button
+                          key={seller.id}
+                          type="button"
+                          aria-label={product.name}
+                          onClick={() => openChooser(product)}
+                          className="flex w-24 shrink-0 flex-col items-center gap-1 rounded-none border bg-card p-2 transition-colors hover:bg-muted"
+                        >
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={product.name} className="h-14 w-full object-cover" />
+                          ) : (
+                            <span className="flex h-14 w-full items-center justify-center bg-muted text-lg font-bold text-muted-foreground">
+                              {product.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="w-full truncate text-center text-xs font-medium" dir="auto">
+                            {product.name}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+              <h2 className="text-sm font-semibold text-muted-foreground">{t('counter.categories')}</h2>
+              <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-3 overflow-auto pe-1 sm:grid-cols-3 xl:grid-cols-4">
+                {categories.map((category) => {
+                  const count = products.filter((p) => p.category_id === category.id).length
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      aria-label={category.name}
+                      onClick={() => setActiveCategory(category.id)}
+                      className="flex flex-col items-center gap-2 border bg-card p-6 text-center transition-colors hover:bg-muted"
+                    >
+                      <span className="text-3xl font-bold text-primary">{category.name.charAt(0).toUpperCase()}</span>
+                      <span className="font-semibold" dir="auto">
+                        {category.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {count} {count > 1 ? t('counter.products') : t('counter.product')}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
-            )}
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                expanded={expandedProduct === product.id}
-                onToggle={() => setExpandedProduct((cur) => (cur === product.id ? null : product.id))}
-                onSelectVariant={(variantId, dimension, price, outOfStock) => {
-                  addToCart({
-                    key: `variant:${variantId}`,
-                    productVariantId: variantId,
-                    name: product.name,
-                    detail: dimension,
-                    unitPrice: price,
-                  })
-                  if (outOfStock) {
-                    toast.warning(t('counter.zeroStock'))
-                  }
-                }}
-                onCustom={() => setCustomDialogOpen(true)}
-                fromLabel={t('counter.from')}
-                customDimensionLabel={t('counter.customDimension')}
-                zeroStockLabel={t('counter.zeroStock')}
-              />
-            ))}
-          </div>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" className="w-fit" onClick={() => setActiveCategory(null)}>
+                <ArrowLeft />
+                {t('counter.allCategories')}
+              </Button>
+              {filteredProducts.length === 0 ? (
+                <div className="flex flex-1 flex-col items-center gap-2 py-16 text-center">
+                  <ShoppingCart className="size-10 text-muted-foreground" />
+                  <p className="font-semibold">{t('counter.noProducts')}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {session.role === 'owner' ? t('counter.noProductsOwner') : t('counter.noProductsEmployee')}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-3 overflow-auto pe-1 sm:grid-cols-3 xl:grid-cols-4">
+                  {filteredProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} onSelect={() => openChooser(product)} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {isNarrow ? null : (
-          <div className="flex w-[360px] shrink-0 flex-col gap-3">
-            <CheckoutPanel
-              cart={cart}
-              onSetQuantity={setQuantity}
-              onRemoveLine={removeLine}
-              customerName={customerName}
-              onCustomerName={setCustomerName}
-              customerPhone={customerPhone}
-              onCustomerPhone={setCustomerPhone}
-              payment={payment}
-              onPayment={setPayment}
-              onCustomPayment={() => setCustomPaymentOpen(true)}
-              depositPresets={settings?.default_deposit_percentages ?? []}
-              total={total}
-              deposit={deposit}
-              remaining={remaining}
-              depositLabel={depositLabel}
-              saleIsValid={saleIsValid}
-              saving={saleMutation.isPending}
-              onSave={() => saleMutation.mutate()}
-            />
-          </div>
-        )}
+        {isNarrow ? null : <div className="flex w-[360px] shrink-0 flex-col gap-3">{checkoutPanel}</div>}
       </div>
 
       {isNarrow && (
@@ -392,6 +456,31 @@ export function CounterPage({ session }: { session: Session }) {
         </SheetContent>
       </Sheet>
 
+      <ChooserDialog
+        product={chooserProduct}
+        selectedName={chooserName}
+        selectedDimension={chooserDimension}
+        onSelectName={setChooserName}
+        onSelectDimension={setChooserDimension}
+        onClose={() => setChooserProduct(null)}
+        onConfirm={(variant) => {
+          if (!chooserProduct) return
+          addToCart({
+            key: `variant:${variant.id}`,
+            productVariantId: variant.id,
+            name: chooserProduct.name,
+            detail: variantLabel(variant.name, variant.dimension),
+            unitPrice: variant.price,
+            lowStock: variant.low_stock,
+            availableLow: variant.available_low,
+          })
+          if (variant.out_of_stock) {
+            toast.warning(t('counter.zeroStock'))
+          }
+          setChooserProduct(null)
+        }}
+      />
+
       <Dialog open={customDialogOpen} onOpenChange={setCustomDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -399,6 +488,16 @@ export function CounterPage({ session }: { session: Session }) {
             <DialogDescription>{t('counter.customDimension')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="custom-name">{t('counter.customName')}</Label>
+              <Input
+                id="custom-name"
+                dir="auto"
+                placeholder={t('counter.customNamePlaceholder')}
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="custom-dimension">{t('counter.dimensionLabel')}</Label>
               <Input
@@ -418,6 +517,16 @@ export function CounterPage({ session }: { session: Session }) {
                 placeholder={t('counter.pricePlaceholder')}
                 value={customPrice}
                 onChange={(e) => setCustomPrice(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom-note">{t('counter.customNote')}</Label>
+              <Input
+                id="custom-note"
+                dir="auto"
+                placeholder={t('counter.customNotePlaceholder')}
+                value={customNote}
+                onChange={(e) => setCustomNote(e.target.value)}
               />
             </div>
             <Button className="w-full" onClick={addCustomItem}>
@@ -501,6 +610,180 @@ export function CounterPage({ session }: { session: Session }) {
         </div>
       )}
     </div>
+  )
+}
+
+function availabilityLabel(
+  t: (key: string, opts?: { n?: number }) => string,
+  variant: { out_of_stock: boolean; low_stock: boolean; available_low: number | null; available_above: number | null },
+): string {
+  if (variant.out_of_stock) return t('counter.rupture')
+  if (variant.low_stock) return t('counter.onlyLeft', { n: variant.available_low ?? 0 })
+  return t('counter.moreThan', { n: variant.available_above ?? 3 })
+}
+
+function ChooserDialog({
+  product,
+  selectedName,
+  selectedDimension,
+  onSelectName,
+  onSelectDimension,
+  onClose,
+  onConfirm,
+}: {
+  product: CounterProduct | null
+  selectedName: string | null
+  selectedDimension: string | null
+  onSelectName: (name: string | null) => void
+  onSelectDimension: (dimension: string | null) => void
+  onClose: () => void
+  onConfirm: (variant: CounterProduct['variants'][number]) => void
+}) {
+  const { t } = useTranslation()
+  if (!product) return null
+
+  const names = [...new Set(product.variants.map((v) => v.name).filter(Boolean) as string[])]
+  const dimensions = [...new Set(product.variants.map((v) => v.dimension).filter((d) => d.trim()) as string[])]
+
+  const matching = (name: string | null, dimension: string | null) =>
+    product.variants.find(
+      (v) =>
+        (name === null || v.name === name) &&
+        (dimension === null || v.dimension === dimension || (dimension === '' && !v.dimension.trim())),
+    )
+
+  const nameVariants = (name: string) =>
+    product.variants.filter((v) => v.name === name && (selectedDimension === null || v.dimension === selectedDimension))
+  const dimensionVariants = (dimension: string) =>
+    product.variants.filter((v) => v.dimension === dimension && (selectedName === null || v.name === selectedName))
+
+  const selectedVariant =
+    names.length === 0 && dimensions.length === 0
+      ? product.variants[0]
+      : matching(selectedName, selectedDimension)
+
+  const canConfirm = selectedVariant !== undefined
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle dir="auto">{product.name}</DialogTitle>
+          <DialogDescription>{t('counter.availability')}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          {names.length > 0 && (
+            <div className="space-y-2">
+              <Label>{t('counter.chooseColor')}</Label>
+              <div className="flex flex-wrap gap-2">
+                {names.map((name) => {
+                  const variants = nameVariants(name)
+                  const first = variants[0]
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => onSelectName(selectedName === name ? null : name)}
+                      className={cn(
+                        'rounded-none border px-3 py-2 text-sm transition-colors',
+                        selectedName === name ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:bg-muted',
+                      )}
+                    >
+                      <span className="block" dir="auto">
+                        {name}
+                      </span>
+                      {first && (
+                        <span className={cn('block text-xs', selectedName === name ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+                          {availabilityLabel(t, first)}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {dimensions.length > 0 && (
+            <div className="space-y-2">
+              <Label>{t('counter.chooseSize')}</Label>
+              <div className="flex flex-wrap gap-2">
+                {dimensions.map((dimension) => {
+                  const first = dimensionVariants(dimension)[0]
+                  return (
+                    <button
+                      key={dimension}
+                      type="button"
+                      onClick={() => onSelectDimension(selectedDimension === dimension ? null : dimension)}
+                      className={cn(
+                        'rounded-none border px-3 py-2 text-sm transition-colors',
+                        selectedDimension === dimension ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card hover:bg-muted',
+                      )}
+                    >
+                      <span className="block" dir="auto">
+                        {dimension}
+                      </span>
+                      {first && (
+                        <span className={cn('block text-xs', selectedDimension === dimension ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+                          {availabilityLabel(t, first)}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {selectedVariant && (
+            <div className="flex items-center justify-between rounded-none border bg-muted/50 px-3 py-2 text-sm">
+              <span dir="auto">
+                {variantLabel(selectedVariant.name, selectedVariant.dimension) || product.name}
+              </span>
+              <span className={cn('font-semibold', selectedVariant.out_of_stock && 'text-destructive')}>
+                {availabilityLabel(t, selectedVariant)}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={onClose}>
+              {t('counter.close')}
+            </Button>
+            <Button disabled={!canConfirm} onClick={() => selectedVariant && onConfirm(selectedVariant)}>
+              {t('counter.ok')}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ProductCard({ product, onSelect }: { product: CounterProduct; onSelect: () => void }) {
+  const { t } = useTranslation()
+  const minPrice = product.variants.length > 0 ? Math.min(...product.variants.map((v) => v.price)) : 0
+  const imageUrl = productImageUrl(product.image_path)
+  return (
+    <button
+      type="button"
+      aria-label={product.name}
+      onClick={onSelect}
+      className="rounded-none border bg-card p-2 text-start transition-colors hover:bg-muted"
+    >
+      {imageUrl ? (
+        <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-none bg-muted">
+          <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
+        </div>
+      ) : (
+        <div className="flex aspect-[4/3] w-full items-center justify-center rounded-none bg-muted text-4xl font-bold text-muted-foreground">
+          {product.name.charAt(0).toUpperCase()}
+        </div>
+      )}
+      <p className="mt-2 truncate text-sm font-semibold" dir="auto">
+        {product.name}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {product.variants.length} · {t('counter.from')} <span dir="ltr">{formatDzd(minPrice)}</span>
+      </p>
+    </button>
   )
 }
 
@@ -688,80 +971,5 @@ function CheckoutPanel({
         </Button>
       </Card>
     </>
-  )
-}
-
-function ProductCard({
-  product,
-  expanded,
-  onToggle,
-  onSelectVariant,
-  onCustom,
-  fromLabel,
-  customDimensionLabel,
-  zeroStockLabel,
-}: {
-  product: CounterProduct
-  expanded: boolean
-  onToggle: () => void
-  onSelectVariant: (variantId: number, dimension: string, price: number, outOfStock: boolean) => void
-  onCustom: () => void
-  fromLabel: string
-  customDimensionLabel: string
-  zeroStockLabel: string
-}) {
-  const minPrice = product.variants.length > 0 ? Math.min(...product.variants.map((v) => v.price)) : 0
-  const imageUrl = productImageUrl(product.image_path)
-  return (
-    <div className={expanded ? 'rounded-none border-2 border-primary p-2' : 'rounded-none border p-2'}>
-      <button type="button" onClick={onToggle} className="w-full text-start">
-        {imageUrl ? (
-          <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-none bg-muted">
-            <img src={imageUrl} alt={product.name} className="h-full w-full object-cover" />
-          </div>
-        ) : (
-          <div className="flex aspect-[4/3] w-full items-center justify-center rounded-none bg-muted text-4xl font-bold text-muted-foreground">
-            {product.name.charAt(0).toUpperCase()}
-          </div>
-        )}
-        <p className="mt-2 truncate text-sm font-semibold" dir="auto">
-          {product.name}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {product.variants.length} · {fromLabel} <span dir="ltr">{formatDzd(minPrice)}</span>
-        </p>
-      </button>
-      {expanded && (
-        <div className="mt-2 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            {product.variants.map((variant) => (
-              <button
-                key={variant.id}
-                type="button"
-                className="relative rounded-md border p-2 text-center transition-colors hover:border-primary hover:bg-primary/5"
-                onClick={() => onSelectVariant(variant.id, variant.dimension, variant.price, variant.out_of_stock)}
-              >
-                <span className="block text-sm font-semibold" dir="auto">
-                  {variantLabel(variant.name, variant.dimension)}
-                </span>
-                <span className="block text-xs text-muted-foreground" dir="ltr">
-                  {formatDzd(variant.price)}
-                </span>
-                {variant.out_of_stock && (
-                  <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-destructive">
-                    <AlertTriangle className="size-3" />
-                    {zeroStockLabel}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-          <Button variant="outline" className="w-full" onClick={onCustom}>
-            <Ruler />
-            {customDimensionLabel}
-          </Button>
-        </div>
-      )}
-    </div>
   )
 }

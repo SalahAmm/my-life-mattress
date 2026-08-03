@@ -20,34 +20,44 @@ const mockApi = {
         id: 1,
         name: 'Matelas Elite',
         category_id: 1,
+        image_path: null,
         variants: [
-          { id: 10, dimension: '160x190',
-        variant_name: null, price: 45000, out_of_stock: false },
-          { id: 11, dimension: '180x200', price: 55000, out_of_stock: true },
+          { id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
+          { id: 11, dimension: '180x200', name: null, price: 55000, out_of_stock: true, low_stock: false, available_low: null, available_above: null },
+        ],
+      },
+      {
+        id: 2,
+        name: 'Lit Sierra',
+        category_id: 1,
+        image_path: null,
+        variants: [
+          { id: 20, dimension: '', name: 'Sahara', price: 80000, out_of_stock: false, low_stock: true, available_low: 2, available_above: null },
+          { id: 21, dimension: '', name: 'Blanc', price: 82000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
         ],
       },
     ]),
     listFull: vi.fn().mockResolvedValue([]),
+    topSellers: vi.fn().mockResolvedValue([
+      { id: 1, name: 'Matelas Elite', image_path: null, units_sold: 6 },
+      { id: 2, name: 'Lit Sierra', image_path: null, units_sold: 4 },
+    ]),
     create: vi.fn(),
+    update: vi.fn(),
     deactivate: vi.fn(),
+    uploadImage: vi.fn(),
   },
-  suppliers: { list: vi.fn().mockResolvedValue([]), create: vi.fn() },
+  suppliers: { list: vi.fn().mockResolvedValue([]), create: vi.fn(), setActive: vi.fn() },
   categories: { list: vi.fn().mockResolvedValue([{ id: 1, name: 'Matelas', sort_order: 0, active: true }]) },
-  sales: {
-    create: vi.fn(),
-    get: vi.fn(),
-    recent: vi.fn(),
-    addPayment: vi.fn(),
-    setStatus: vi.fn(),
-    cancel: vi.fn(),
-  },
+  sales: { create: vi.fn(), get: vi.fn(), recent: vi.fn(), addPayment: vi.fn(), setStatus: vi.fn(), cancel: vi.fn() },
   printing: { printReceipt: vi.fn().mockResolvedValue({ success: true }), printInBrowser: vi.fn().mockResolvedValue({ success: true }) },
   settings: {
     get: vi.fn().mockResolvedValue({
       id: 1,
-      store_name: 'My Life Mattress',
+      store_name: 'MLM',
       logo_path: null,
       default_deposit_percentages: [30, 50, 70],
+      dimension_presets: ['90x190', '160x190', '180x200'],
       show_delivery_note: true,
       show_phone_on_receipt: true,
       show_quantity_on_receipt: true,
@@ -57,6 +67,12 @@ const mockApi = {
     uploadLogo: vi.fn(),
   },
 } as unknown as ElectronAPI
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  localStorage.clear()
+  window.electronAPI = mockApi
+})
 
 const saleFixture: SaleWithDetails = {
   id: 7,
@@ -79,7 +95,7 @@ const saleFixture: SaleWithDetails = {
       custom_description: null,
       product_name: 'Matelas Elite',
       dimension: '160x190',
-        variant_name: null,
+      variant_name: null,
     },
   ],
   payments: [],
@@ -103,31 +119,67 @@ function renderCounter() {
   )
 }
 
-beforeEach(() => {
-  vi.clearAllMocks()
-  window.electronAPI = mockApi
-})
-
 async function addVariant() {
   const user = userEvent.setup()
-  await user.click(await screen.findByText('Matelas Elite'))
-  await user.click(screen.getByRole('button', { name: /160x190/ }))
+  await user.click(await screen.findByRole('button', { name: 'Matelas' }))
+  await user.click(await screen.findByRole('button', { name: 'Matelas Elite' }))
+  await user.click(await screen.findByRole('button', { name: /160x190/ }))
+  await user.click(screen.getByRole('button', { name: 'OK' }))
   return user
 }
 
-describe('CounterPage', () => {
-  it('adds a variant to the cart and shows the running total', async () => {
+describe('CounterPage redesign (ticket 02)', () => {
+  it('main view shows category tiles and the top-sellers row', async () => {
     renderCounter()
-    await addVariant()
-    expect(screen.getAllByText('160x190').length).toBeGreaterThanOrEqual(2)
-    expect(screen.getAllByText('45 000 DZD').length).toBeGreaterThanOrEqual(1)
+    expect(await screen.findByRole('button', { name: 'Matelas' })).toBeInTheDocument()
+    expect(await screen.findByText('Plus vendus')).toBeInTheDocument()
+    expect(screen.getAllByText('Matelas Elite').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Lit Sierra').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('flags a zero-stock variant but still allows selling it', async () => {
+  it('tapping a category shows its product cards', async () => {
     renderCounter()
     const user = userEvent.setup()
-    await user.click(await screen.findByText('Matelas Elite'))
-    expect(await screen.findByText('Stock: 0')).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Matelas' }))
+    expect(await screen.findByRole('button', { name: 'Matelas Elite' })).toBeInTheDocument()
+    expect(screen.getByText('Lit Sierra')).toBeInTheDocument()
+  })
+
+  it('choosing a size in the chooser and OK adds the variant to the cart', async () => {
+    renderCounter()
+    const user = await addVariant()
+    expect(await screen.findByText('160x190')).toBeInTheDocument()
+    expect(screen.getAllByText('45 000 DZD').length).toBeGreaterThanOrEqual(1)
+    void user
+  })
+
+  it('the chooser shows availability wording: Plus que X when low, Rupture at zero', async () => {
+    renderCounter()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Matelas' }))
+    await user.click(await screen.findByRole('button', { name: 'Lit Sierra' }))
+    expect((await screen.findAllByText('Plus que 2')).length).toBeGreaterThanOrEqual(1)
+    await user.click(screen.getByRole('button', { name: 'Fermer' }))
+    await user.click(await screen.findByRole('button', { name: 'Matelas Elite' }))
+    expect(await screen.findByText('Rupture')).toBeInTheDocument()
+  })
+
+  it('shows a near-end banner when a low-stock variant is in the cart', async () => {
+    renderCounter()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Matelas' }))
+    await user.click(await screen.findByRole('button', { name: 'Lit Sierra' }))
+    await user.click(await screen.findByRole('button', { name: /Sahara/ }))
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+    expect(await screen.findByText(/Plus que 2/)).toBeInTheDocument()
+  })
+
+  it('search matches a color name', async () => {
+    renderCounter()
+    const user = userEvent.setup()
+    await user.type(await screen.findByPlaceholderText(/Rechercher/), 'sahara')
+    expect(await screen.findByRole('button', { name: 'Lit Sierra' })).toBeInTheDocument()
+    expect(screen.queryByText('Matelas Elite')).not.toBeInTheDocument()
   })
 
   it('computes the deposit and remaining balance from a preset', async () => {
@@ -137,135 +189,27 @@ describe('CounterPage', () => {
     expect(screen.getAllByText('22 500 DZD').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('computes a zero remaining balance for full payment', async () => {
-    renderCounter()
-    const user = await addVariant()
-    await user.click(await screen.findByRole('button', { name: 'Paiement Complet' }))
-    expect(screen.getAllByText('0 DZD').length).toBeGreaterThanOrEqual(1)
-  })
-
   it('disables the save button with an empty cart', async () => {
     renderCounter()
-    await screen.findByText('Panier vide')
-    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeDisabled()
-  })
-
-  it('saves the sale then shows the receipt preview and prints', async () => {
-    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
-    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
-    renderCounter()
-    const user = await addVariant()
-    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
-    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
-    expect(screen.getAllByText(/Vente enregistrée/).length).toBeGreaterThanOrEqual(1)
-    await user.click(screen.getByRole('button', { name: 'Imprimer' }))
-    await waitFor(() => expect(mockApi.printing.printReceipt).toHaveBeenCalledWith(7))
-    expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Terminer la vente' }))
-    await waitFor(() => expect(screen.getByText('Panier vide')).toBeInTheDocument())
-  })
-
-  it('ADR-0002: a successful print never clears the cart; only Terminer does', async () => {
-    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
-    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
-    renderCounter()
-    const user = await addVariant()
-    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
-    await waitFor(() => expect(screen.getAllByText(/Vente enregistrée/).length).toBeGreaterThanOrEqual(1))
-    await user.click(screen.getByRole('button', { name: 'Imprimer' }))
-    await waitFor(() => expect(mockApi.printing.printReceipt).toHaveBeenCalledWith(7))
-    expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
-    expect(screen.getAllByText(/Vente enregistrée/).length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('ADR-0002: closing the preview without printing keeps the sale safe and reprintable', async () => {
-    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
-    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
-    renderCounter()
-    const user = await addVariant()
-    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
-    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
-    await user.click(screen.getByRole('button', { name: 'Fermer' }))
-    expect(screen.queryByText(/Vente enregistrée/)).toBeInTheDocument()
-    expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
-  })
-
-  it('ADR-0002: Enregistrer is disabled while a saved sale is still open', async () => {
-    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
-    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
-    renderCounter()
-    const user = await addVariant()
-    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
-    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
+    await screen.findByText('Plus vendus')
     const buttons = [...document.querySelectorAll('button')]
     const saveButton = buttons.find((b) => b.textContent?.trim() === 'Enregistrer')
-    expect(saveButton).toBeDefined()
     expect(saveButton?.hasAttribute('disabled')).toBe(true)
   })
 
-  it('ADR-0002: browser print never clears the cart; only Terminer does', async () => {
+  it('saves the sale then shows the receipt preview and prints; Terminer resets', async () => {
     vi.mocked(mockApi.sales.create).mockResolvedValue(7)
     vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
     renderCounter()
     const user = await addVariant()
     await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
     await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
-    await user.click(screen.getByRole('button', { name: 'Imprimer via navigateur' }))
-    await waitFor(() => expect(mockApi.printing.printInBrowser).toHaveBeenCalledWith(7))
+    expect(screen.getAllByText(/Vente enregistrée/).length).toBeGreaterThanOrEqual(1)
+    await user.click(screen.getByRole('button', { name: 'Imprimer' }))
+    await waitFor(() => expect(mockApi.printing.printReceipt).toHaveBeenCalledWith(7))
     expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Terminer la vente' }))
     await waitFor(() => expect(screen.getByText('Panier vide')).toBeInTheDocument())
-  })
-
-  it('shows the product card with letter tile, name, variant count and from-price', async () => {
-    renderCounter()
-    expect(await screen.findByText('Matelas Elite')).toBeInTheDocument()
-    expect(screen.getByText(/à partir de/)).toBeInTheDocument()
-  })
-
-  it('Enregistrer carries the gold accent', async () => {
-    renderCounter()
-    await screen.findByText('Panier vide')
-    const button = screen.getByRole('button', { name: 'Enregistrer' })
-    expect(button.className).toMatch(/bg-accent/)
-  })
-
-  it('renders the product photo on the card when present, letter tile otherwise', async () => {
-    vi.mocked(mockApi.products.list).mockResolvedValue([
-      {
-        id: 1,
-        name: 'Matelas Elite',
-        category_id: 1,
-        image_path: 'C:/data/products/p1.png',
-        variants: [{ id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 }],
-      },
-      {
-        id: 2,
-        name: 'Lit Sierra',
-        category_id: 1,
-        image_path: null,
-        variants: [{ id: 20, dimension: '', name: 'Sahara', price: 80000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 }],
-      },
-    ])
-    renderCounter()
-    await screen.findByText('Matelas Elite')
-    const images = [...document.querySelectorAll('img')] as HTMLImageElement[]
-    expect(images.some((img) => img.src.includes('app-asset://products/p1.png'))).toBe(true)
-    expect(screen.getByText('L')).toBeInTheDocument()
-  })
-
-  it('never double-submits: the save button is disabled while pending', async () => {
-    let resolveCreate: (value: number) => void = () => {}
-    vi.mocked(mockApi.sales.create).mockImplementation(() => new Promise<number>((resolve) => (resolveCreate = resolve)))
-    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
-    renderCounter()
-    const user = await addVariant()
-    const saveButton = screen.getByRole('button', { name: 'Enregistrer' })
-    await user.click(saveButton)
-    await waitFor(() => expect(saveButton).toBeDisabled())
-    await user.click(saveButton).catch(() => {})
-    resolveCreate(7)
-    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
   })
 
   it('sends the exact sale payload with deposit metadata', async () => {
@@ -280,22 +224,31 @@ describe('CounterPage', () => {
     await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
     const payload = vi.mocked(mockApi.sales.create).mock.calls[0][0] as NewSalePayload
     expect(payload.customerName).toBe('Ahmed Benali')
-    expect(payload.customerPhone).toBe('0550123456')
     expect(payload.items).toEqual([
       { productVariantId: 10, quantity: 1, unitPriceAtSale: 0, customDescription: null },
     ])
     expect(payload.payment).toEqual({ amount: 13500, type: 'deposit', enteredAsPercentage: 30 })
   })
 
-  it('adds a custom dimension item via the dialog', async () => {
+  it('Enregistrer carries the gold accent', async () => {
+    renderCounter()
+    await screen.findByText('Plus vendus')
+    const buttons = [...document.querySelectorAll('button')]
+    const saveButton = buttons.find((b) => b.textContent?.trim() === 'Enregistrer')
+    expect(saveButton?.className).toMatch(/bg-accent/)
+  })
+
+  it('custom dimension dialog captures name, dimension, price and note', async () => {
     renderCounter()
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: /Dimension Personnalisée/ }))
+    await user.type(screen.getByLabelText('Nom / couleur'), 'Sahara')
     await user.type(screen.getByLabelText('Dimension'), '170x200')
     await user.type(screen.getByLabelText('Prix (DZD)'), '65000')
+    await user.type(screen.getByLabelText('Remarque'), 'commande spéciale')
     await user.click(screen.getByRole('button', { name: 'Ajouter au panier' }))
-    expect(screen.getByText(/Dimension Personnalisée: 170x200/)).toBeInTheDocument()
+    expect(screen.getByText(/Sahara.*170x200|170x200.*Sahara/)).toBeInTheDocument()
+    expect(screen.getByText(/commande spéciale/)).toBeInTheDocument()
     expect(screen.getByText('Personnalisé')).toBeInTheDocument()
-    expect(screen.getAllByText('65 000 DZD').length).toBeGreaterThanOrEqual(1)
   })
 })

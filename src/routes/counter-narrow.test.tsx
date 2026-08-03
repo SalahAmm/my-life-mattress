@@ -20,16 +20,19 @@ const mockApi = {
         id: 1,
         name: 'Matelas Elite',
         category_id: 1,
+        image_path: null,
         variants: [
-          { id: 10, dimension: '160x190',
-        variant_name: null, price: 45000, out_of_stock: false },
-          { id: 11, dimension: '180x200', price: 55000, out_of_stock: true },
+          { id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
+          { id: 11, dimension: '180x200', name: null, price: 55000, out_of_stock: true, low_stock: false, available_low: null, available_above: null },
         ],
       },
     ]),
     listFull: vi.fn().mockResolvedValue([]),
+    topSellers: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
+    update: vi.fn(),
     deactivate: vi.fn(),
+    uploadImage: vi.fn(),
   },
   suppliers: { list: vi.fn().mockResolvedValue([]), create: vi.fn() },
   categories: { list: vi.fn().mockResolvedValue([{ id: 1, name: 'Matelas', sort_order: 0, active: true }]) },
@@ -123,8 +126,10 @@ function renderCounter() {
 
 async function addVariant() {
   const user = userEvent.setup()
-  await user.click(await screen.findByText('Matelas Elite'))
-  await user.click(screen.getByRole('button', { name: /160x190/ }))
+  await user.click(await screen.findByRole('button', { name: 'Matelas' }))
+  await user.click(await screen.findByRole('button', { name: 'Matelas Elite' }))
+  await user.click(await screen.findByRole('button', { name: /160x190/ }))
+  await user.click(screen.getByRole('button', { name: 'OK' }))
   return user
 }
 
