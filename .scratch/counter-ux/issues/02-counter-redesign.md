@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Counter data layer
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: counter redesign. Category tiles, top-sellers row, chooser dialog (color+size filtering rows, availability wording Rupture/Plus que X/Plus de Y), near-end banner, search by name/color/size, custom dimension gains name+note. Suite 188/188; typecheck clean.
 
 - [ ] Category tiles → product grid → chooser dialog with OK flow works end-to-end
 - [ ] Color/size rows filter each other; custom entry available in the chooser
