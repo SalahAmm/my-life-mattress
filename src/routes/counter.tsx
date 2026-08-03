@@ -7,6 +7,7 @@ import { depositFromPercentage, formatDzd, saleTotal } from '@shared/money'
 import type { CounterProduct, NewSalePayload, SaleWithDetails, Session } from '@shared/types'
 import { api } from '@/lib/ipc-client'
 import { saleReceiptHtml } from '@/lib/receipt-preview'
+import { useIsNarrow } from '@/hooks/use-narrow'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -16,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { PrintPreviewDialog } from '@/components/print-preview-dialog'
 import { PageHeader } from '@/components/management/page-header'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 interface CartLine {
   key: string
@@ -34,6 +36,7 @@ type PaymentSelection =
 export function CounterPage({ session }: { session: Session }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const isNarrow = useIsNarrow()
 
   const { data: products = [] } = useQuery({
     queryKey: ['counter-products'],
@@ -64,6 +67,7 @@ export function CounterPage({ session }: { session: Session }) {
   const [previewSale, setPreviewSale] = useState<SaleWithDetails | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [printError, setPrintError] = useState<string | null>(null)
+  const [cartSheetOpen, setCartSheetOpen] = useState(false)
 
   const total = useMemo(() => saleTotal(cart), [cart])
   const deposit = useMemo(() => {
@@ -312,153 +316,79 @@ export function CounterPage({ session }: { session: Session }) {
           </div>
         </div>
 
-        <div className="flex w-[360px] shrink-0 flex-col gap-3">
-          <Card className="flex min-h-0 flex-1 flex-col p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-bold">{t('counter.cart')}</h2>
-              <Badge variant="secondary">{cart.reduce((sum, l) => sum + l.quantity, 0)}</Badge>
-            </div>
-            {cart.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-                <ShoppingCart className="size-10" />
-                <p className="font-semibold text-foreground">{t('counter.cartEmpty')}</p>
-                <p className="text-sm">{t('counter.cartEmptyHint')}</p>
-              </div>
-            ) : (
-              <div className="min-h-0 flex-1 space-y-3 overflow-auto">
-                {cart.map((line) => (
-                  <div key={line.key} className="rounded-md border p-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold" dir="auto">
-                          {line.name}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground" dir="auto">
-                          {line.detail}
-                        </p>
-                      </div>
-                      {line.productVariantId === null && (
-                        <Badge variant="outline" className="shrink-0 text-[10px]">
-                          {t('counter.customTag')}
-                        </Badge>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-6 shrink-0"
-                        onClick={() => removeLine(line.key)}
-                        aria-label={t('common.cancel')}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Button variant="outline" size="icon" className="size-6" onClick={() => setQuantity(line.key, -1)}>
-                          <Minus className="size-3" />
-                        </Button>
-                        <span className="w-6 text-center text-sm" dir="ltr">
-                          {line.quantity}
-                        </span>
-                        <Button variant="outline" size="icon" className="size-6" onClick={() => setQuantity(line.key, 1)}>
-                          <Plus className="size-3" />
-                        </Button>
-                      </div>
-                      <span className="text-sm font-semibold" dir="ltr">
-                        {formatDzd(line.quantity * line.unitPrice)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card className="space-y-3 p-4">
-            <div className="space-y-2">
-              <Label htmlFor="counter-customer">{t('counter.customerName')}</Label>
-              <Input
-                id="counter-customer"
-                dir="auto"
-                placeholder={t('counter.customerNamePlaceholder')}
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="counter-phone">{t('counter.customerPhone')}</Label>
-              <Input
-                id="counter-phone"
-                dir="ltr"
-                inputMode="tel"
-                placeholder={t('counter.customerPhonePlaceholder')}
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-              />
-            </div>
-          </Card>
-
-          <Card className="space-y-3 p-4">
-            <h3 className="font-bold">{t('counter.payment')}</h3>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant={payment?.kind === 'full' ? 'default' : 'outline'}
-                onClick={() => setPayment(payment?.kind === 'full' ? null : { kind: 'full' })}
-              >
-                {t('counter.payFull')}
-              </Button>
-              {(settings?.default_deposit_percentages ?? []).map((pct) => (
-                <Button
-                  key={pct}
-                  size="sm"
-                  variant={payment?.kind === 'preset' && payment.pct === pct ? 'default' : 'outline'}
-                  onClick={() =>
-                    setPayment(payment?.kind === 'preset' && payment.pct === pct ? null : { kind: 'preset', pct })
-                  }
-                >
-                  {t('counter.depositOf', { pct })}
-                </Button>
-              ))}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setCustomPaymentOpen(true)}
-              >
-                {t('counter.customPayment')}
-              </Button>
-            </div>
-            <Separator />
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('counter.total')}</span>
-                <span className="font-semibold" dir="ltr">
-                  {formatDzd(total)}
-                </span>
-              </div>
-              {deposit > 0 && (
-                <div className="flex justify-between text-primary">
-                  <span>{depositLabel}</span>
-                  <span dir="ltr">{formatDzd(deposit)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold">
-                <span>{t('counter.remaining') ?? t('counter.total')}</span>
-                <span dir="ltr">{formatDzd(remaining)}</span>
-              </div>
-            </div>
-            <Button
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-              size="lg"
-              disabled={!saleIsValid}
-              onClick={() => saleMutation.mutate()}
-            >
-              {saleMutation.isPending && <Loader2 className="size-4 animate-spin" />}
-              {t('counter.save')}
-            </Button>
-          </Card>
-        </div>
+        {isNarrow ? null : (
+          <div className="flex w-[360px] shrink-0 flex-col gap-3">
+            <CheckoutPanel
+              cart={cart}
+              onSetQuantity={setQuantity}
+              onRemoveLine={removeLine}
+              customerName={customerName}
+              onCustomerName={setCustomerName}
+              customerPhone={customerPhone}
+              onCustomerPhone={setCustomerPhone}
+              payment={payment}
+              onPayment={setPayment}
+              onCustomPayment={() => setCustomPaymentOpen(true)}
+              depositPresets={settings?.default_deposit_percentages ?? []}
+              total={total}
+              deposit={deposit}
+              remaining={remaining}
+              depositLabel={depositLabel}
+              saleIsValid={saleIsValid}
+              saving={saleMutation.isPending}
+              onSave={() => saleMutation.mutate()}
+            />
+          </div>
+        )}
       </div>
+
+      {isNarrow && (
+        <div className="sticky bottom-0 z-20 -mx-4 border-t bg-card p-3 md:-mx-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary">{cart.reduce((sum, l) => sum + l.quantity, 0)}</Badge>
+              <span className="text-lg font-bold" dir="ltr">
+                {formatDzd(total)}
+              </span>
+            </div>
+            <Button onClick={() => setCartSheetOpen(true)} disabled={cart.length === 0}>
+              <ShoppingCart />
+              {t('counter.viewCart')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Sheet open={cartSheetOpen} onOpenChange={setCartSheetOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto bg-background p-4 sm:max-w-md">
+          <SheetHeader className="mb-3">
+            <SheetTitle>{t('counter.cart')}</SheetTitle>
+          </SheetHeader>
+          <CheckoutPanel
+            cart={cart}
+            onSetQuantity={setQuantity}
+            onRemoveLine={removeLine}
+            customerName={customerName}
+            onCustomerName={setCustomerName}
+            customerPhone={customerPhone}
+            onCustomerPhone={setCustomerPhone}
+            payment={payment}
+            onPayment={setPayment}
+            onCustomPayment={() => setCustomPaymentOpen(true)}
+            depositPresets={settings?.default_deposit_percentages ?? []}
+            total={total}
+            deposit={deposit}
+            remaining={remaining}
+            depositLabel={depositLabel}
+            saleIsValid={saleIsValid}
+            saving={saleMutation.isPending}
+            onSave={() => {
+              saleMutation.mutate()
+              setCartSheetOpen(false)
+            }}
+          />
+        </SheetContent>
+      </Sheet>
 
       <Dialog open={customDialogOpen} onOpenChange={setCustomDialogOpen}>
         <DialogContent>
@@ -569,6 +499,193 @@ export function CounterPage({ session }: { session: Session }) {
         </div>
       )}
     </div>
+  )
+}
+
+function CheckoutPanel({
+  cart,
+  onSetQuantity,
+  onRemoveLine,
+  customerName,
+  onCustomerName,
+  customerPhone,
+  onCustomerPhone,
+  payment,
+  onPayment,
+  onCustomPayment,
+  depositPresets,
+  total,
+  deposit,
+  remaining,
+  depositLabel,
+  saleIsValid,
+  saving,
+  onSave,
+}: {
+  cart: CartLine[]
+  onSetQuantity: (key: string, delta: number) => void
+  onRemoveLine: (key: string) => void
+  customerName: string
+  onCustomerName: (value: string) => void
+  customerPhone: string
+  onCustomerPhone: (value: string) => void
+  payment: PaymentSelection | null
+  onPayment: (payment: PaymentSelection | null) => void
+  onCustomPayment: () => void
+  depositPresets: number[]
+  total: number
+  deposit: number
+  remaining: number
+  depositLabel: string | null
+  saleIsValid: boolean
+  saving: boolean
+  onSave: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <>
+      <Card className="flex min-h-0 flex-1 flex-col p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="font-bold">{t('counter.cart')}</h2>
+          <Badge variant="secondary">{cart.reduce((sum, l) => sum + l.quantity, 0)}</Badge>
+        </div>
+        {cart.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+            <ShoppingCart className="size-10" />
+            <p className="font-semibold text-foreground">{t('counter.cartEmpty')}</p>
+            <p className="text-sm">{t('counter.cartEmptyHint')}</p>
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 space-y-3 overflow-auto">
+            {cart.map((line) => (
+              <div key={line.key} className="rounded-none border p-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold" dir="auto">
+                      {line.name}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground" dir="auto">
+                      {line.detail}
+                    </p>
+                  </div>
+                  {line.productVariantId === null && (
+                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                      {t('counter.customTag')}
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 shrink-0"
+                    onClick={() => onRemoveLine(line.key)}
+                    aria-label={t('common.cancel')}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="size-6" onClick={() => onSetQuantity(line.key, -1)}>
+                      <Minus className="size-3" />
+                    </Button>
+                    <span className="w-6 text-center text-sm" dir="ltr">
+                      {line.quantity}
+                    </span>
+                    <Button variant="outline" size="icon" className="size-6" onClick={() => onSetQuantity(line.key, 1)}>
+                      <Plus className="size-3" />
+                    </Button>
+                  </div>
+                  <span className="text-sm font-semibold" dir="ltr">
+                    {formatDzd(line.quantity * line.unitPrice)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card className="space-y-3 p-4">
+        <div className="space-y-2">
+          <Label htmlFor="counter-customer">{t('counter.customerName')}</Label>
+          <Input
+            id="counter-customer"
+            dir="auto"
+            placeholder={t('counter.customerNamePlaceholder')}
+            value={customerName}
+            onChange={(e) => onCustomerName(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="counter-phone">{t('counter.customerPhone')}</Label>
+          <Input
+            id="counter-phone"
+            dir="ltr"
+            inputMode="tel"
+            placeholder={t('counter.customerPhonePlaceholder')}
+            value={customerPhone}
+            onChange={(e) => onCustomerPhone(e.target.value)}
+          />
+        </div>
+      </Card>
+
+      <Card className="space-y-3 p-4">
+        <h3 className="font-bold">{t('counter.payment')}</h3>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant={payment?.kind === 'full' ? 'default' : 'outline'}
+            onClick={() => onPayment(payment?.kind === 'full' ? null : { kind: 'full' })}
+          >
+            {t('counter.payFull')}
+          </Button>
+          {depositPresets.map((pct) => (
+            <Button
+              key={pct}
+              size="sm"
+              variant={payment?.kind === 'preset' && payment.pct === pct ? 'default' : 'outline'}
+              onClick={() =>
+                onPayment(payment?.kind === 'preset' && payment.pct === pct ? null : { kind: 'preset', pct })
+              }
+            >
+              {t('counter.depositOf', { pct })}
+            </Button>
+          ))}
+          <Button size="sm" variant="outline" onClick={onCustomPayment}>
+            {t('counter.customPayment')}
+          </Button>
+        </div>
+        <Separator />
+        <div className="space-y-1.5 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">{t('counter.total')}</span>
+            <span className="font-semibold" dir="ltr">
+              {formatDzd(total)}
+            </span>
+          </div>
+          {deposit > 0 && (
+            <div className="flex justify-between text-primary">
+              <span>{depositLabel}</span>
+              <span dir="ltr">{formatDzd(deposit)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold">
+            <span>{t('counter.remaining') ?? t('counter.total')}</span>
+            <span dir="ltr">{formatDzd(remaining)}</span>
+          </div>
+        </div>
+        <Button
+          className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+          size="lg"
+          disabled={!saleIsValid}
+          onClick={onSave}
+        >
+          {saving && <Loader2 className="size-4 animate-spin" />}
+          {t('counter.save')}
+        </Button>
+      </Card>
+    </>
   )
 }
 

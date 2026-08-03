@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 — Counter (desktop)
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Sticky bottom bar appears below 1024px with live count/total
 - [ ] Checkout sheet completes the same sale flow as desktop
