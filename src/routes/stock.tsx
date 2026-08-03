@@ -515,7 +515,7 @@ function AddProductDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{t('stock.addProduct')}</DialogTitle>
           <DialogDescription className="sr-only">{t('stock.addProduct')}</DialogDescription>
@@ -603,31 +603,38 @@ function AddProductDialog({
               </Button>
             </div>
             {variants.map((variant, index) => (
-              <div key={index} className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_auto] items-end gap-2">
-                <VariantField label={t('stock.variantName')}>
-                  <Input dir="auto" value={variant.name ?? ''} onChange={(e) => updateVariant(index, { name: e.target.value })} placeholder={t('stock.variantNamePlaceholder')} />
-                </VariantField>
-                <VariantField label={t('stock.dimension')}>
-                  <Input dir="auto" value={variant.dimension} onChange={(e) => updateVariant(index, { dimension: e.target.value })} placeholder={t('stock.dimensionPlaceholder')} />
-                </VariantField>
-                <VariantField label={t('stock.price')}>
-                  <Input dir="ltr" inputMode="numeric" value={variant.price === 0 ? '' : String(variant.price)} onChange={(e) => updateVariant(index, { price: Number(e.target.value) || 0 })} />
-                </VariantField>
-                <VariantField label={t('stock.initialStock')}>
-                  <Input dir="ltr" inputMode="numeric" value={variant.initialStock === 0 ? '' : String(variant.initialStock)} onChange={(e) => updateVariant(index, { initialStock: Number(e.target.value) || 0 })} />
-                </VariantField>
-                <VariantField label={t('stock.threshold')}>
-                  <Input dir="ltr" inputMode="numeric" value={variant.lowStockThreshold === 0 ? '' : String(variant.lowStockThreshold)} onChange={(e) => updateVariant(index, { lowStockThreshold: Number(e.target.value) || 0 })} />
-                </VariantField>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={variants.length === 1}
-                  onClick={() => setVariants((prev) => prev.filter((_, i) => i !== index))}
-                  aria-label={t('stock.removeVariant')}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
+              <div key={index} className="space-y-3 border p-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-muted-foreground">
+                    {t('stock.variant')} {index + 1}
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={variants.length === 1}
+                    onClick={() => setVariants((prev) => prev.filter((_, i) => i !== index))}
+                    aria-label={t('stock.removeVariant')}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                  <VariantField label={t('stock.variantName')} className="xl:col-span-2">
+                    <Input dir="auto" value={variant.name ?? ''} onChange={(e) => updateVariant(index, { name: e.target.value })} placeholder={t('stock.variantNamePlaceholder')} />
+                  </VariantField>
+                  <VariantField label={t('stock.dimension')} className="xl:col-span-1">
+                    <Input dir="auto" value={variant.dimension} onChange={(e) => updateVariant(index, { dimension: e.target.value })} placeholder={t('stock.dimensionPlaceholder')} />
+                  </VariantField>
+                  <VariantField label={t('stock.price')}>
+                    <Input dir="ltr" inputMode="numeric" value={variant.price === 0 ? '' : String(variant.price)} onChange={(e) => updateVariant(index, { price: Number(e.target.value) || 0 })} />
+                  </VariantField>
+                  <VariantField label={t('stock.initialStock')}>
+                    <Input dir="ltr" inputMode="numeric" value={variant.initialStock === 0 ? '' : String(variant.initialStock)} onChange={(e) => updateVariant(index, { initialStock: Number(e.target.value) || 0 })} />
+                  </VariantField>
+                  <VariantField label={t('stock.threshold')}>
+                    <Input dir="ltr" inputMode="numeric" value={variant.lowStockThreshold === 0 ? '' : String(variant.lowStockThreshold)} onChange={(e) => updateVariant(index, { lowStockThreshold: Number(e.target.value) || 0 })} />
+                  </VariantField>
+                </div>
               </div>
             ))}
           </div>
@@ -641,9 +648,9 @@ function AddProductDialog({
   )
 }
 
-function VariantField({ label, children }: { label: string; children: ReactNode }) {
+function VariantField({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className="space-y-1.5">
+    <div className={cn('space-y-1.5', className)}>
       <Label className="text-xs text-muted-foreground">{label}</Label>
       {children}
     </div>

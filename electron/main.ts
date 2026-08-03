@@ -4,6 +4,7 @@ import { createDatabase } from './db/connection'
 import { AuthService } from './auth/service'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initLogging, logError } from './log'
+import { resolveAppAsset } from './assets'
 
 app.setPath('userData', path.join(app.getPath('appData'), 'my-life-mattress'))
 
@@ -53,19 +54,11 @@ app.whenReady().then(() => {
     const logosDir = path.join(userData, 'logos')
     const productsDir = path.join(userData, 'products')
     protocol.handle('app-asset', (request) => {
-      const url = new URL(request.url)
-      const requested = decodeURIComponent(url.pathname).replace(/^[/\\]+/, '')
-      const [folder, ...rest] = requested.split(/[/\\]/)
-      const base = folder === 'logos' ? logosDir : folder === 'products' ? productsDir : null
-      if (!base) {
+      const filePath = resolveAppAsset(request.url, { logos: logosDir, products: productsDir })
+      if (!filePath) {
         return new Response('Not found', { status: 404 })
       }
-      const resolved = path.normalize(path.join(base, ...rest))
-      const baseNorm = path.normalize(base)
-      if (!(resolved === baseNorm || resolved.startsWith(baseNorm + path.sep))) {
-        return new Response('Not found', { status: 404 })
-      }
-      return net.fetch(pathToFileUrl(resolved))
+      return net.fetch(pathToFileUrl(filePath))
     })
 
     app.on('activate', () => {

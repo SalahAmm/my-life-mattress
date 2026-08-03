@@ -4,7 +4,7 @@
 
 **Blocked by:** 01, 02, 03, 04, 05
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Migration v2 applies cleanly on fresh + existing DBs (no data loss)
 - [ ] All four feature tickets' acceptance criteria hold on the running app
