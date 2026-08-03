@@ -4,7 +4,11 @@
 
 **Blocked by:** 02 — Counter redesign; 05 — Add-product dialog i18n + roomy layout
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Committed fix: stock table min-width 760px with horizontal scroll; counter/settings already adapt. Suite 188/188.
 
 - [ ] Stock table horizontally scrollable with min-width at 768/1024
 - [ ] Counter, settings, dialogs usable at 768/1024 in FR and AR

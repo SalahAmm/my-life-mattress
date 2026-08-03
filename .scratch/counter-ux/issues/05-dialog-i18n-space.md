@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed fix: dialog widened (max-w-4xl) with taller inputs; i18n audit clean (no hardcoded strings). Suite 188/188.
 
 - [ ] No hardcoded strings remain in the dialog (audit + keys)
 - [ ] Dialog is wider with taller inputs; fields show 2-3 words comfortably
