@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Theme system and brand tokens; 05 — Management primitives
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] KPI cards show live counts and filter the list when clicked
 - [ ] Products grouped under supplier headers; category badges intact

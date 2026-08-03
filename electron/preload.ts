@@ -28,6 +28,7 @@ const api: ElectronAPI = {
   suppliers: {
     list: () => invoke('suppliers:list'),
     create: (input) => invoke('suppliers:create', input),
+    setActive: (input) => invoke('suppliers:setActive', input),
   },
   categories: {
     list: () => invoke('categories:list'),

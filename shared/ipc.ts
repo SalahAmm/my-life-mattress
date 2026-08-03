@@ -53,6 +53,7 @@ export interface ElectronAPI {
   suppliers: {
     list(): Promise<Supplier[]>
     create(input: { name: string; phone: string | null }): Promise<number>
+    setActive(input: { id: number; active: boolean }): Promise<void>
   }
   categories: {
     list(): Promise<Category[]>

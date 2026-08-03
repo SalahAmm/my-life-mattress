@@ -10,7 +10,7 @@ import type { AuthService } from '../auth/service'
 import { logError } from '../log'
 import { listActiveCategories } from '../db/queries/categories'
 import { listCounterProducts, createProduct, deactivateProduct, listProducts } from '../db/queries/products'
-import { createSupplier, listSuppliers } from '../db/queries/suppliers'
+import { createSupplier, listSuppliers, setSupplierActive } from '../db/queries/suppliers'
 import {
   addPayment,
   cancelSale,
@@ -190,6 +190,15 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
     }
     return createSupplier(db, parsed.data)
+  }))
+
+  ipcMain.handle('suppliers:setActive', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z.object({ id: z.number().int().positive(), active: z.boolean() }).safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    setSupplierActive(db, parsed.data.id, parsed.data.active)
   }))
 
   ipcMain.handle('categories:list', wrap(async () => {
