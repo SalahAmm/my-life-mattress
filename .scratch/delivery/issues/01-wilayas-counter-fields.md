@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: 58 wilayas constant + counter wilaya/address fields (quick-select + custom). Suite 194/194; typecheck clean.
 
 - [ ] 58 wilayas constant, no duplicates
 - [ ] Counter checkout: wilaya select (presets + custom text) + address input
