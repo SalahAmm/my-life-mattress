@@ -14,6 +14,7 @@ import { PlaceholderPage } from '@/routes/placeholder'
 import { CounterPage } from '@/routes/counter'
 import { StockPage } from '@/routes/stock'
 import { SettingsPage } from '@/routes/settings'
+import { DeliveryPage } from '@/routes/delivery'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 interface NavItem {
@@ -49,7 +50,7 @@ export function AppShell({ session }: { session: Session }) {
               path="/stock"
               element={session.role === 'owner' ? <StockPage /> : <Navigate to="/" replace />}
             />
-            <Route path="/delivery" element={<PlaceholderPage icon={Truck} titleKey="nav.delivery" />} />
+            <Route path="/delivery" element={<DeliveryPage session={session} />} />
             <Route
               path="/reports"
               element={

@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: sales:list IPC (status filter, full details). Suite 195/195; typecheck clean.
 
 - [ ] listSales query with status filter (default ordered)
 - [ ] sales:list IPC + preload + types

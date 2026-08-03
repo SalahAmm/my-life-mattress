@@ -67,6 +67,36 @@
     "title": "قيد الإنشاء",
     "description": "سيكون هذا القسم متاحًا في خطوة قادمة."
   },
+  "delivery": {
+    "title": "التسليم",
+    "pending": "قيد الانتظار",
+    "delivered": "تم التسليم",
+    "all": "الكل",
+    "toCollect": "مستحق التحصيل",
+    "collectBalance": "تحصيل الرصيد",
+    "markDelivered": "وضع علامة تم التسليم",
+    "collectAndDeliver": "تحصيل وتسليم",
+    "deliverNow": "تسليم",
+    "withoutWilaya": "بدون ولاية",
+    "total": "المجموع",
+    "paid": "المدفوع",
+    "due": "الرصيد المتبقي",
+    "amount": "المبلغ (دج)",
+    "collectTitle": "تحصيل الرصيد",
+    "collect": "تحصيل",
+    "remainingToCollect": "المتبقي للتحصيل",
+    "deliverCollectHint": "يوجد رصيد متبقٍ. قم بتحصيله ثم ستُعلَّم الطلبية كمسلَّمة.",
+    "deliverDirectHint": "هذه الطلبية مدفوعة بالكامل. وضع علامة تم التسليم؟",
+    "noOrders": "لا توجد طلبيات",
+    "noOrdersPending": "ستظهر الطلبيات في انتظار التسليم هنا.",
+    "paymentAdded": "تم تسجيل الدفع",
+    "markedDelivered": "تم تسليم الطلبية",
+    "status": {
+      "ordered": "قيد الانتظار",
+      "delivered": "تم التسليم",
+      "cancelled": "ملغاة"
+    }
+  },
   "counter": {
     "title": "بيع سريع",
     "searchPlaceholder": "ابحث عن منتج أو لون أو مقاس…",

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Wilayas + counter fields; 02 — Delivery data
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] KPI cards with live counts; À encaisser card owner-only
 - [ ] Orders grouped by wilaya with status tabs and search

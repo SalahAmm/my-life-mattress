@@ -67,6 +67,36 @@
     "title": "En construction",
     "description": "Cette section sera disponible dans une prochaine étape."
   },
+  "delivery": {
+    "title": "Livraison",
+    "pending": "En attente",
+    "delivered": "Livré",
+    "all": "Toutes",
+    "toCollect": "À encaisser",
+    "collectBalance": "Encaisser le Solde",
+    "markDelivered": "Marquer comme Livré",
+    "collectAndDeliver": "Encaisser et livrer",
+    "deliverNow": "Livrer",
+    "withoutWilaya": "Sans wilaya",
+    "total": "Total",
+    "paid": "Payé",
+    "due": "Solde dû",
+    "amount": "Montant (DZD)",
+    "collectTitle": "Encaisser le solde",
+    "collect": "Encaisser",
+    "remainingToCollect": "Reste à encaisser",
+    "deliverCollectHint": "Un solde reste dû. Encaisser le solde, puis la commande sera marquée comme livrée.",
+    "deliverDirectHint": "Cette commande est entièrement payée. La marquer comme livrée ?",
+    "noOrders": "Aucune commande",
+    "noOrdersPending": "Les commandes en attente de livraison apparaîtront ici.",
+    "paymentAdded": "Paiement enregistré",
+    "markedDelivered": "Commande livrée",
+    "status": {
+      "ordered": "En attente",
+      "delivered": "Livré",
+      "cancelled": "Annulé"
+    }
+  },
   "counter": {
     "title": "Vente Rapide",
     "searchPlaceholder": "Rechercher un produit, une couleur ou une taille…",
