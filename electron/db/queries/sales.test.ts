@@ -197,8 +197,27 @@ describe('sales queries', () => {
     expect(movements.map((m) => m.change)).toEqual([2, -2])
   })
 
-  it('reuses an existing customer by phone number', () => {
+  it('persists the free-delivery flag and returns it on the sale', () => {
     const { db, owner, product } = seed(database())
+    const variant = product.variants[0]
+    const saleId = createSale(
+      db,
+      saleArgs(owner, {
+        freeDelivery: true,
+        items: [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }],
+      }),
+    )
+    expect(getSale(db, saleId).free_delivery).toBe(true)
+    const otherId = createSale(
+      db,
+      saleArgs(owner, {
+        items: [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }],
+      }),
+    )
+    expect(getSale(db, otherId).free_delivery).toBe(false)
+  })
+
+  it('reuses an existing customer by phone number', () => {    const { db, owner, product } = seed(database())
     const variant = product.variants[0]
     const item = [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }]
     createSale(db, saleArgs(owner, { customerPhone: '0550123456', items: item }))

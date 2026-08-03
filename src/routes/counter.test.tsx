@@ -84,6 +84,7 @@ const saleFixture: SaleWithDetails = {
   status: 'ordered',
   wilaya: null,
   delivery_address: null,
+      free_delivery: false,
   created_at: '2026-08-03T10:00:00.000Z',
   items: [
     {
@@ -129,12 +130,10 @@ async function addVariant() {
 }
 
 describe('CounterPage redesign (ticket 02)', () => {
-  it('main view shows category tiles and the top-sellers row', async () => {
+  it('main view shows category tiles', async () => {
     renderCounter()
     expect(await screen.findByRole('button', { name: 'Matelas' })).toBeInTheDocument()
-    expect(await screen.findByText('Plus vendus')).toBeInTheDocument()
-    expect(screen.getAllByText('Matelas Elite').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Lit Sierra').length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText('Plus vendus')).not.toBeInTheDocument()
   })
 
   it('tapping a category shows its product cards', async () => {
@@ -195,7 +194,7 @@ describe('CounterPage redesign (ticket 02)', () => {
 
   it('disables the save button with an empty cart', async () => {
     renderCounter()
-    await screen.findByText('Plus vendus')
+    await screen.findByRole('button', { name: 'Matelas' })
     const buttons = [...document.querySelectorAll('button')]
     const saveButton = buttons.find((b) => b.textContent?.trim() === 'Enregistrer')
     expect(saveButton?.hasAttribute('disabled')).toBe(true)
@@ -232,11 +231,24 @@ describe('CounterPage redesign (ticket 02)', () => {
       { productVariantId: 10, quantity: 1, unitPriceAtSale: 0, customDescription: null },
     ])
     expect(payload.payment).toEqual({ amount: 13500, type: 'deposit', enteredAsPercentage: 30 })
+    expect(payload.freeDelivery).toBe(false)
+  })
+
+  it('toggling Livraison Gratuite sends freeDelivery true on the sale', async () => {
+    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
+    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
+    renderCounter()
+    const user = await addVariant()
+    await user.click(await screen.findByLabelText(/Livraison Gratuite/))
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
+    const payload = vi.mocked(mockApi.sales.create).mock.calls[0][0] as NewSalePayload
+    expect(payload.freeDelivery).toBe(true)
   })
 
   it('Enregistrer carries the gold accent', async () => {
     renderCounter()
-    await screen.findByText('Plus vendus')
+    await screen.findByRole('button', { name: 'Matelas' })
     const buttons = [...document.querySelectorAll('button')]
     const saveButton = buttons.find((b) => b.textContent?.trim() === 'Enregistrer')
     expect(saveButton?.className).toMatch(/bg-accent/)

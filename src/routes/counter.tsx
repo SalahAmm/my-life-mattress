@@ -12,6 +12,7 @@ import { useIsNarrow } from '@/hooks/use-narrow'
 import { productImageUrl } from '@/lib/product-image'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -51,10 +52,6 @@ export function CounterPage({ session }: { session: Session }) {
     queryKey: ['categories'],
     queryFn: () => api.categories.list(),
   })
-  const { data: topSellers = [] } = useQuery({
-    queryKey: ['top-sellers'],
-    queryFn: () => api.products.topSellers(),
-  })
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: () => api.settings.get(),
@@ -68,6 +65,7 @@ export function CounterPage({ session }: { session: Session }) {
   const [cart, setCart] = useState<CartLine[]>([])
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
+  const [freeDelivery, setFreeDelivery] = useState(false)
   const [payment, setPayment] = useState<PaymentSelection | null>(null)
   const [customDialogOpen, setCustomDialogOpen] = useState(false)
   const [customDimension, setCustomDimension] = useState('')
@@ -158,6 +156,7 @@ export function CounterPage({ session }: { session: Session }) {
         customerPhone: customerPhone.trim() || null,
         wilaya: null,
         deliveryAddress: null,
+        freeDelivery,
         items,
         payment:
           deposit > 0
@@ -180,7 +179,6 @@ export function CounterPage({ session }: { session: Session }) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['counter-products'] })
-      void queryClient.invalidateQueries({ queryKey: ['top-sellers'] })
     },
   })
 
@@ -221,6 +219,7 @@ export function CounterPage({ session }: { session: Session }) {
     setCart([])
     setCustomerName('')
     setCustomerPhone('')
+    setFreeDelivery(false)
     setPayment(null)
   }
 
@@ -282,6 +281,9 @@ export function CounterPage({ session }: { session: Session }) {
       onCustomerName={setCustomerName}
       customerPhone={customerPhone}
       onCustomerPhone={setCustomerPhone}
+      freeDelivery={freeDelivery}
+      onFreeDelivery={setFreeDelivery}
+      freeDeliveryEnabled={settings?.show_delivery_note ?? false}
       payment={payment}
       onPayment={setPayment}
       onCustomPayment={() => setCustomPaymentOpen(true)}
@@ -324,38 +326,6 @@ export function CounterPage({ session }: { session: Session }) {
           )}
           {mainView ? (
             <>
-              {topSellers.length > 0 && (
-                <div>
-                  <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{t('counter.topSellers')}</h2>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {topSellers.map((seller) => {
-                      const product = products.find((p) => p.id === seller.id)
-                      if (!product) return null
-                      const imageUrl = productImageUrl(product.image_path)
-                      return (
-                        <button
-                          key={seller.id}
-                          type="button"
-                          aria-label={product.name}
-                          onClick={() => openChooser(product)}
-                          className="flex w-24 shrink-0 flex-col items-center gap-1 rounded-none border bg-card p-2 transition-colors hover:bg-muted"
-                        >
-                          {imageUrl ? (
-                            <img src={imageUrl} alt={product.name} className="h-14 w-full object-cover" />
-                          ) : (
-                            <span className="flex h-14 w-full items-center justify-center bg-muted text-lg font-bold text-muted-foreground">
-                              {product.name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                          <span className="w-full truncate text-center text-xs font-medium" dir="auto">
-                            {product.name}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
               <h2 className="text-sm font-semibold text-muted-foreground">{t('counter.categories')}</h2>
               <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-3 overflow-auto pe-1 sm:grid-cols-3 xl:grid-cols-4">
                 {categories.map((category) => {
@@ -438,6 +408,9 @@ export function CounterPage({ session }: { session: Session }) {
             onCustomerName={setCustomerName}
             customerPhone={customerPhone}
             onCustomerPhone={setCustomerPhone}
+            freeDelivery={freeDelivery}
+            onFreeDelivery={setFreeDelivery}
+            freeDeliveryEnabled={settings?.show_delivery_note ?? false}
             payment={payment}
             onPayment={setPayment}
             onCustomPayment={() => setCustomPaymentOpen(true)}
@@ -820,6 +793,9 @@ function CheckoutPanel({
   onCustomerName,
   customerPhone,
   onCustomerPhone,
+  freeDelivery,
+  onFreeDelivery,
+  freeDeliveryEnabled,
   payment,
   onPayment,
   onCustomPayment,
@@ -839,6 +815,9 @@ function CheckoutPanel({
   onCustomerName: (value: string) => void
   customerPhone: string
   onCustomerPhone: (value: string) => void
+  freeDelivery: boolean
+  onFreeDelivery: (value: boolean) => void
+  freeDeliveryEnabled: boolean
   payment: PaymentSelection | null
   onPayment: (payment: PaymentSelection | null) => void
   onCustomPayment: () => void
@@ -938,6 +917,15 @@ function CheckoutPanel({
             onChange={(e) => onCustomerPhone(e.target.value)}
           />
         </div>
+        {freeDeliveryEnabled && (
+          <label className="flex cursor-pointer items-center gap-2 border bg-muted/40 px-3 py-2 text-sm">
+            <Checkbox
+              checked={freeDelivery}
+              onCheckedChange={(value) => onFreeDelivery(Boolean(value))}
+            />
+            <span>{t('counter.freeShipping')}</span>
+          </label>
+        )}
       </Card>
 
       <Card className="space-y-3 p-4">

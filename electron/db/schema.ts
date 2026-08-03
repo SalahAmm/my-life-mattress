@@ -146,4 +146,12 @@ export const MIGRATIONS: { version: number; up: (db: Database) => void }[] = [
       `)
     },
   },
+  {
+    version: 5,
+    up(db) {
+      db.exec(`
+        ALTER TABLE sales ADD COLUMN free_delivery INTEGER NOT NULL DEFAULT 0;
+      `)
+    },
+  },
 ]

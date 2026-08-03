@@ -59,10 +59,10 @@ export function createSale(db: Database, input: CreateSaleArgs): number {
     const customerId = getCustomerId(db, payload.customerName, payload.customerPhone)
     const saleResult = db
       .prepare(
-        `INSERT INTO sales (customer_id, created_by, wilaya, delivery_address)
-         VALUES (?, ?, ?, ?)`,
+        `INSERT INTO sales (customer_id, created_by, wilaya, delivery_address, free_delivery)
+         VALUES (?, ?, ?, ?, ?)`,
       )
-      .run(customerId, createdBy, payload.wilaya, payload.deliveryAddress)
+      .run(customerId, createdBy, payload.wilaya, payload.deliveryAddress, payload.freeDelivery ? 1 : 0)
     const saleId = Number(saleResult.lastInsertRowid)
 
     const insertItem = db.prepare(
@@ -118,6 +118,7 @@ export function getSale(db: Database, saleId: number): SaleWithDetails {
         status: SaleStatus
         wilaya: string | null
         delivery_address: string | null
+        free_delivery: number
         created_at: string
       }
     | undefined
@@ -141,6 +142,7 @@ export function getSale(db: Database, saleId: number): SaleWithDetails {
   const paid = payments.reduce((sum, p) => sum + p.amount, 0)
   return {
     ...row,
+    free_delivery: Boolean(row.free_delivery),
     items,
     payments,
     total,

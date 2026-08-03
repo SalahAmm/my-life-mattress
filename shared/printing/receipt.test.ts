@@ -20,6 +20,7 @@ function sale(overrides: Partial<SaleWithDetails> = {}): SaleWithDetails {
     customer_id: 1,
     customer_name: 'Ahmed Benali',
     customer_phone: '0550123456',
+    free_delivery: false,
     created_by: 1,
     created_by_username: 'Kamel',
     status: 'ordered',
@@ -174,9 +175,10 @@ describe('receipt template', () => {
     expect(html).toContain('90 000 DZD')
   })
 
-  it('includes the delivery note only when enabled in settings', () => {
-    expect(render().indexOf('Livraison Gratuite')).toBeGreaterThan(0)
+  it('includes the delivery note only when enabled in settings AND the sale has free delivery', () => {
+    expect(render({ free_delivery: true }).indexOf('Livraison Gratuite')).toBeGreaterThan(0)
     expect(render({}, { show_delivery_note: false })).not.toContain('Livraison Gratuite')
+    expect(render({ free_delivery: false })).not.toContain('Livraison Gratuite')
   })
 
   it('escapes untrusted text from data fields', () => {

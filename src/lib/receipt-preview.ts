@@ -41,6 +41,7 @@ export function sampleSaleForPreview(): SaleWithDetails {
     status: 'ordered',
     wilaya: 'Alger',
     delivery_address: 'Cité 5 Juillet',
+    free_delivery: true,
     created_at: new Date().toISOString(),
     items: [
       {

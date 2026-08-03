@@ -72,7 +72,7 @@ export function renderReceiptHtml(input: ReceiptTemplateInput): string {
         </div>`
     : ''
 
-  const deliveryNote = settings.show_delivery_note
+  const deliveryNote = settings.show_delivery_note && sale.free_delivery
     ? `<div class="delivery-note">Livraison Gratuite / توصيل مجاني</div>`
     : ''
 

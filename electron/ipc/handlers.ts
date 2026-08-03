@@ -67,6 +67,7 @@ export const SALE_SCHEMA = z.object({
   customerPhone: z.string().trim().max(30).nullable(),
   wilaya: z.string().trim().max(100).nullable(),
   deliveryAddress: z.string().trim().max(500).nullable(),
+  freeDelivery: z.boolean().optional(),
   items: z
     .array(
       z.object({

@@ -64,6 +64,7 @@ const saleFixture: SaleWithDetails = {
   status: 'ordered',
   wilaya: null,
   delivery_address: null,
+      free_delivery: false,
   created_at: '2026-08-03T10:00:00.000Z',
   items: [
     {

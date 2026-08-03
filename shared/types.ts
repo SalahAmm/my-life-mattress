@@ -74,6 +74,7 @@ export type Sale = {
   status: SaleStatus
   wilaya: string | null
   delivery_address: string | null
+  free_delivery: boolean
   created_at: string
 }
 
@@ -225,6 +226,7 @@ export interface NewSalePayload {
   customerPhone: string | null
   wilaya: string | null
   deliveryAddress: string | null
+  freeDelivery?: boolean
   items: NewSaleItemPayload[]
   payment: NewPaymentPayload | null
 }
@@ -251,6 +253,7 @@ export interface SaleWithDetails {
   status: SaleStatus
   wilaya: string | null
   delivery_address: string | null
+  free_delivery: boolean
   created_at: string
   items: SaleItemDetailed[]
   payments: Payment[]
