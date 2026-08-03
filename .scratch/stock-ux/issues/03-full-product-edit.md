@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Variant name field; 02 — Product photos
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] products:update IPC (owner-only, zod-validated) updates name/category/supplier/variants
 - [ ] Edit dialog reuses the product form pre-filled; save reflects in Stock + Counter

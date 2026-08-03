@@ -9,7 +9,7 @@ import type { IpcResult } from '@shared/ipc'
 import type { AuthService } from '../auth/service'
 import { logError } from '../log'
 import { listActiveCategories } from '../db/queries/categories'
-import { listCounterProducts, createProduct, deactivateProduct, listProducts } from '../db/queries/products'
+import { listCounterProducts, createProduct, deactivateProduct, listProducts, updateProduct } from '../db/queries/products'
 import { createSupplier, listSuppliers, setSupplierActive } from '../db/queries/suppliers'
 import {
   addPayment,
@@ -117,6 +117,31 @@ export const PRODUCT_SCHEMA = z.object({
   { message: 'Variant requires a name or a dimension' },
 )
 
+export const UPDATE_PRODUCT_SCHEMA = z
+  .object({
+    id: z.number().int().positive(),
+    name: z.string().trim().min(1).max(200),
+    categoryId: z.number().int().positive().nullable(),
+    supplierId: z.number().int().positive().nullable(),
+    imagePath: z.string().trim().max(500).nullable().optional(),
+    variants: z
+      .array(
+        z.object({
+          id: z.number().int().positive().optional(),
+          dimension: z.string().trim().max(50),
+          name: z.string().trim().max(100).nullable().optional(),
+          price: z.number().int().min(0).max(100_000_000),
+          sku: z.string().trim().max(100).nullable(),
+        }),
+      )
+      .min(1)
+      .max(100),
+  })
+  .refine(
+    (payload) => payload.variants.every((v) => v.dimension.trim().length > 0 || (v.name ?? '').trim().length > 0),
+    { message: 'Variant requires a name or a dimension' },
+  )
+
 export const SETTINGS_SCHEMA = z.object({
   storeName: z.string().trim().min(1).max(200),
   defaultDepositPercentages: z
@@ -186,6 +211,15 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     requireOwner(auth)
     const id = z.number().int().positive().parse(payload)
     deactivateProduct(db, id)
+  }))
+
+  ipcMain.handle('products:update', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = UPDATE_PRODUCT_SCHEMA.safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    updateProduct(db, parsed.data)
   }))
 
   ipcMain.handle('products:uploadImage', wrap(async () => {

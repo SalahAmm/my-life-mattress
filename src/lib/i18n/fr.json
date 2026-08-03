@@ -144,6 +144,8 @@
   "stock": {
     "title": "Stock",
     "addProduct": "Ajouter un produit",
+    "editProduct": "Modifier le produit",
+    "edit": "Modifier",
     "productPhoto": "Photo du produit",
     "uploadPhoto": "Ajouter une photo",
     "productName": "Nom du produit",

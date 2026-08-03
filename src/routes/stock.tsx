@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ImagePlus, Loader2, Package, Plus, Trash2, User } from 'lucide-react'
+import { ImagePlus, Loader2, Package, Pencil, Plus, Trash2, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDzd } from '@shared/money'
 import { variantLabel } from '@shared/variants'
@@ -59,6 +59,7 @@ export function StockPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<ProductWithVariants | null>(null)
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
   const [filter, setFilter] = useState<StockFilter>('all')
   const [search, setSearch] = useState('')
@@ -136,7 +137,12 @@ export function StockPage() {
       <PageHeader
         title={t('stock.title')}
         action={
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button
+            onClick={() => {
+              setEditingProduct(null)
+              setDialogOpen(true)
+            }}
+          >
             <Plus />
             {t('stock.addProduct')}
           </Button>
@@ -224,6 +230,10 @@ export function StockPage() {
               filter={filter}
               onDeactivateSupplier={() => removeSupplierMutation.mutate(group.id)}
               onDeactivateProduct={(id) => deactivateMutation.mutate(id)}
+              onEditProduct={(product) => {
+                setEditingProduct(product)
+                setDialogOpen(true)
+              }}
               deactivateLabel={t('stock.removeSupplier')}
               deactivateTitle={t('stock.removeSupplierConfirm')}
               deactivateHint={t('stock.removeSupplierConfirmHint')}
@@ -237,6 +247,10 @@ export function StockPage() {
               filter={filter}
               onDeactivateSupplier={undefined}
               onDeactivateProduct={(id) => deactivateMutation.mutate(id)}
+              onEditProduct={(product) => {
+                setEditingProduct(product)
+                setDialogOpen(true)
+              }}
               deactivateLabel=""
               deactivateTitle=""
               deactivateHint=""
@@ -245,8 +259,10 @@ export function StockPage() {
         </div>
       )}
       <AddProductDialog
+        key={editingProduct?.id ?? 'new'}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        initial={editingProduct}
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
         suppliers={suppliers.map((s) => ({ id: s.id, name: s.name }))}
       />
@@ -261,6 +277,7 @@ function SupplierGroup({
   filter,
   onDeactivateSupplier,
   onDeactivateProduct,
+  onEditProduct,
   deactivateLabel,
   deactivateTitle,
   deactivateHint,
@@ -270,6 +287,7 @@ function SupplierGroup({
   filter: StockFilter
   onDeactivateSupplier?: () => void
   onDeactivateProduct: (id: number) => void
+  onEditProduct: (product: ProductWithVariants) => void
   deactivateLabel: string
   deactivateTitle: string
   deactivateHint: string
@@ -334,6 +352,15 @@ function SupplierGroup({
                   {product.name}
                 </p>
                 {product.category_name && <Badge variant="secondary">{product.category_name}</Badge>}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ms-auto size-7"
+                  aria-label={t('stock.edit')}
+                  onClick={() => onEditProduct(product)}
+                >
+                  <Pencil className="size-3.5" />
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" size="sm" className="ms-auto text-destructive">
@@ -438,25 +465,38 @@ function StockBadge({ quantity, threshold }: { quantity: number; threshold: numb
 function AddProductDialog({
   open,
   onOpenChange,
+  initial,
   categories,
   suppliers,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
+  initial?: ProductWithVariants | null
   categories: { id: number; name: string }[]
   suppliers: { id: number; name: string }[]
 }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [name, setName] = useState('')
-  const [categoryId, setCategoryId] = useState<string>('none')
-  const [supplierId, setSupplierId] = useState<string>('none')
+  const editing = Boolean(initial)
+  const [name, setName] = useState(initial?.name ?? '')
+  const [categoryId, setCategoryId] = useState<string>(initial?.category_id ? String(initial.category_id) : 'none')
+  const [supplierId, setSupplierId] = useState<string>(initial?.supplier_id ? String(initial.supplier_id) : 'none')
   const [newSupplier, setNewSupplier] = useState('')
   const [showNewSupplier, setShowNewSupplier] = useState(false)
-  const [imagePath, setImagePath] = useState<string | null>(null)
-  const [variants, setVariants] = useState<NewVariantInput[]>([
-    { dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 },
-  ])
+  const [imagePath, setImagePath] = useState<string | null>(initial?.image_path ?? null)
+  const [variants, setVariants] = useState<NewVariantInput[]>(
+    initial && initial.variants.length > 0
+      ? initial.variants.map((v) => ({
+          id: v.id,
+          dimension: v.dimension,
+          name: v.name,
+          price: v.price,
+          sku: v.sku,
+          initialStock: v.quantity_on_hand,
+          lowStockThreshold: v.low_stock_threshold,
+        }))
+      : [{ dimension: '', name: '', price: 0, sku: null, initialStock: 0, lowStockThreshold: 0 }],
+  )
 
   const uploadImageMutation = useMutation({
     mutationFn: () => api.products.uploadImage(),
@@ -470,7 +510,26 @@ function AddProductDialog({
   })
 
   const createProductMutation = useMutation({
-    mutationFn: (input: NewProductInput) => api.products.create(input),
+    mutationFn: async (input: NewProductInput) => {
+      if (initial) {
+        await api.products.update({
+          id: initial.id,
+          name: input.name,
+          categoryId: input.categoryId,
+          supplierId: input.supplierId,
+          imagePath: input.imagePath,
+          variants: input.variants.map((v) => ({
+            id: (v as { id?: number }).id,
+            dimension: v.dimension,
+            name: v.name,
+            price: v.price,
+            sku: v.sku,
+          })),
+        })
+        return
+      }
+      return api.products.create(input)
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['stock-products'] })
       void queryClient.invalidateQueries({ queryKey: ['counter-products'] })
@@ -517,8 +576,10 @@ function AddProductDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{t('stock.addProduct')}</DialogTitle>
-          <DialogDescription className="sr-only">{t('stock.addProduct')}</DialogDescription>
+          <DialogTitle>{editing ? t('stock.editProduct') : t('stock.addProduct')}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {editing ? t('stock.editProduct') : t('stock.addProduct')}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex items-start gap-3">

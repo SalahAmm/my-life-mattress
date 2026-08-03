@@ -37,6 +37,21 @@ export interface PrintResult {
   reason?: string
 }
 
+export interface UpdateProductInput {
+  id: number
+  name: string
+  categoryId: number | null
+  supplierId: number | null
+  imagePath?: string | null
+  variants: {
+    id?: number
+    dimension: string
+    name?: string | null
+    price: number
+    sku: string | null
+  }[]
+}
+
 export interface ElectronAPI {
   auth: {
     status(): Promise<AuthStatus>
@@ -49,6 +64,7 @@ export interface ElectronAPI {
     list(): Promise<CounterProduct[]>
     listFull(): Promise<ProductWithVariants[]>
     create(input: NewProductInput): Promise<number>
+    update(input: UpdateProductInput): Promise<void>
     deactivate(id: number): Promise<void>
     uploadImage(): Promise<string | null>
   }

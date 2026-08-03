@@ -134,6 +134,48 @@ export function listCounterProducts(db: Database): CounterProduct[] {
   }))
 }
 
+export function updateProduct(
+  db: Database,
+  input: {
+    id: number
+    name: string
+    categoryId: number | null
+    supplierId: number | null
+    imagePath?: string | null
+    variants: {
+      id?: number
+      dimension: string
+      name?: string | null
+      price: number
+      sku: string | null
+    }[]
+  },
+): void {
+  const run = db.transaction(() => {
+    db.prepare('UPDATE products SET name = ?, category_id = ?, supplier_id = ?, image_path = ? WHERE id = ?').run(
+      input.name,
+      input.categoryId,
+      input.supplierId,
+      input.imagePath ?? null,
+      input.id,
+    )
+    const updateVariant = db.prepare(
+      'UPDATE product_variants SET dimension = ?, name = ?, price = ?, sku = ? WHERE id = ?',
+    )
+    const insertVariant = db.prepare(
+      'INSERT INTO product_variants (product_id, dimension, name, price, sku) VALUES (?, ?, ?, ?, ?)',
+    )
+    for (const variant of input.variants) {
+      if (variant.id) {
+        updateVariant.run(variant.dimension, variant.name ?? null, variant.price, variant.sku, variant.id)
+      } else {
+        insertVariant.run(input.id, variant.dimension, variant.name ?? null, variant.price, variant.sku)
+      }
+    }
+  })
+  run()
+}
+
 export function deactivateProduct(db: Database, id: number): void {
   db.prepare('UPDATE products SET active = 0 WHERE id = ?').run(id)
 }

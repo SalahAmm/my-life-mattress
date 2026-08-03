@@ -43,7 +43,7 @@ const products: ProductWithVariants[] = [
 
 const mockApi = {
   auth: { status: vi.fn(), setupOwner: vi.fn(), login: vi.fn(), logout: vi.fn(), recoverOwner: vi.fn() },
-  products: { list: vi.fn().mockResolvedValue([]), listFull: vi.fn().mockResolvedValue(products), create: vi.fn(), deactivate: vi.fn() },
+  products: { list: vi.fn().mockResolvedValue([]), listFull: vi.fn().mockResolvedValue(products), create: vi.fn(), update: vi.fn().mockResolvedValue(undefined), deactivate: vi.fn(), uploadImage: vi.fn() },
   suppliers: {
     list: vi.fn().mockResolvedValue([{ id: 1, name: 'Rafik', phone: null, active: true, created_at: '' }]),
     create: vi.fn().mockResolvedValue(2),
@@ -173,5 +173,23 @@ describe('StockPage (ticket 08)', () => {
     await user.click(screen.getByRole('button', { name: /Rafik/ }))
     await user.click(screen.getByRole('button', { name: /Tous les fournisseurs/ }))
     expect(screen.getByText('Oreiller Confort')).toBeInTheDocument()
+  })
+
+  it('editing a product pre-fills the form and saves via products:update', async () => {
+    renderStock()
+    await screen.findByRole('heading', { name: 'Rafik' })
+    const user = userEvent.setup()
+    const row = screen.getByText('Matelas Elite').closest('div') as HTMLElement
+    await user.click(within(row).getByLabelText('Modifier'))
+    expect((await screen.findAllByText('Modifier le produit')).length).toBeGreaterThanOrEqual(1)
+    const nameInput = screen.getByLabelText('Nom du produit') as HTMLInputElement
+    expect(nameInput.value).toBe('Matelas Elite')
+    await user.clear(nameInput)
+    await user.type(nameInput, 'Matelas Elite V2')
+    await user.click(screen.getByRole('button', { name: 'Enregistrer le produit' }))
+    await waitFor(() => expect(mockApi.products.update).toHaveBeenCalled())
+    const input = vi.mocked(mockApi.products.update).mock.calls.at(-1)![0] as { id: number; name: string }
+    expect(input.id).toBe(1)
+    expect(input.name).toBe('Matelas Elite V2')
   })
 })

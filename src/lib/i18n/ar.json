@@ -144,6 +144,8 @@
   "stock": {
     "title": "المخزون",
     "addProduct": "إضافة منتج",
+    "editProduct": "تعديل المنتج",
+    "edit": "تعديل",
     "productPhoto": "صورة المنتج",
     "uploadPhoto": "إضافة صورة",
     "productName": "اسم المنتج",
