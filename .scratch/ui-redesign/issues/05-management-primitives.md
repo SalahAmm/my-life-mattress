@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Theme system and brand tokens
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: management primitives`. PageHeader/KpiCard/StatusBadge/EmptyState/DataTableShell built + tested; adopted in Counter, Stock, Settings headers. Suite 127/127; typecheck clean.
 
 - [ ] Primitives render correctly in FR/AR, light/dark, narrow/wide
 - [ ] Used by at least the Stock screen (proves adoption)
