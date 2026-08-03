@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: dimension presets`. Migration v4 seeds 90x190/160x190/180x200; settings round-trip + validated IPC (unique, ≤20); Settings › Produits & Catégories tab live with add/remove. Suite 182/182; typecheck clean; pushed.
 
 - [ ] Migration v4 seeds the three defaults
 - [ ] get/update settings round-trip the list; update IPC validates (non-empty, unique, ≤20)
