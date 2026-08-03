@@ -4,7 +4,11 @@
 
 **Blocked by:** 06 — Counter (desktop)
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: narrow counter`. useIsNarrow (1024 breakpoint) drives a sticky bottom bar (count + LTR total + Voir le panier) and a full-height checkout Sheet; CheckoutPanel extracted and shared with the desktop column; full sale completable from the sheet. Seams A–D green; suite 147/147; typecheck clean.
 
 - [ ] Sticky bottom bar appears below 1024px with live count/total
 - [ ] Checkout sheet completes the same sale flow as desktop
