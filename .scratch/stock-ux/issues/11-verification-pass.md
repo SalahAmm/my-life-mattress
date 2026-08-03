@@ -4,7 +4,7 @@
 
 **Blocked by:** 07, 08, 09, 10, 03
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Migration v4 applies cleanly (fresh + existing data preserved)
 - [ ] All tickets' acceptance criteria hold on the running app
