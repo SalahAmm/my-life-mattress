@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Committed `feat: apply brand theme system (ADR-0001)`. globals.css carries the navy/blue/gold palette (light + dark, radius 0), 14 primitives swept of Sera uppercase/tracking, button/input/badge/label rewritten to the new defaults, sonner wired to the app theme provider, Sera fonts (playfair/noto-variable) + next-themes removed. Theme contract test (seam A + B) green; full suite 101/101; typecheck clean.
 
 - [ ] globals.css tokens match ADR-0001 palette in light and dark
 - [ ] Button/card/input/badge/label/tabs/dialog/table primitives carry the new defaults (radius 0, normal case)
