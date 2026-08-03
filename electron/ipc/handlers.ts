@@ -20,7 +20,7 @@ import {
   setSaleStatus,
 } from '../db/queries/sales'
 import { getReceiptSettings, updateReceiptSettings } from '../db/queries/receipt-settings'
-import { printReceipt } from '../printing'
+import { printInBrowser, printReceipt, receiptHtmlForSale } from '../printing'
 
 type Handler<TInput, TOutput> = (args: {
   auth: AuthService
@@ -246,6 +246,12 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     requireSession(auth)
     const saleId = z.number().int().positive().parse(payload)
     return printReceipt(db, saleId)
+  }))
+
+  ipcMain.handle('printing:printInBrowser', wrap(async ({ payload }) => {
+    requireSession(auth)
+    const saleId = z.number().int().positive().parse(payload)
+    return printInBrowser(receiptHtmlForSale(db, saleId), `Ticket ${saleId}`)
   }))
 
   ipcMain.handle('settings:get', wrap(async () => {

@@ -40,7 +40,7 @@ const mockApi = {
     setStatus: vi.fn(),
     cancel: vi.fn(),
   },
-  printing: { printReceipt: vi.fn().mockResolvedValue({ success: true }) },
+  printing: { printReceipt: vi.fn().mockResolvedValue({ success: true }), printInBrowser: vi.fn().mockResolvedValue({ success: true }) },
   settings: {
     get: vi.fn().mockResolvedValue({
       id: 1,
@@ -199,6 +199,20 @@ describe('CounterPage', () => {
     const saveButton = buttons.find((b) => b.textContent?.trim() === 'Enregistrer')
     expect(saveButton).toBeDefined()
     expect(saveButton?.hasAttribute('disabled')).toBe(true)
+  })
+
+  it('ADR-0002: browser print never clears the cart; only Terminer does', async () => {
+    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
+    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
+    renderCounter()
+    const user = await addVariant()
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
+    await user.click(screen.getByRole('button', { name: 'Imprimer via navigateur' }))
+    await waitFor(() => expect(mockApi.printing.printInBrowser).toHaveBeenCalledWith(7))
+    expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Terminer la vente' }))
+    await waitFor(() => expect(screen.getByText('Panier vide')).toBeInTheDocument())
   })
 
   it('shows the product card with letter tile, name, variant count and from-price', async () => {

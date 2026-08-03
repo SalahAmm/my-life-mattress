@@ -42,6 +42,7 @@ const api: ElectronAPI = {
   },
   printing: {
     printReceipt: (saleId) => invoke('printing:printReceipt', saleId),
+    printInBrowser: (saleId) => invoke('printing:printInBrowser', saleId),
   },
   settings: {
     get: () => invoke('settings:get'),

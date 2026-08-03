@@ -98,6 +98,7 @@
     "remaining": "Reste à payer",
     "save": "Enregistrer",
     "print": "Imprimer",
+    "printBrowser": "Imprimer via navigateur",
     "printFailed": "Impression impossible",
     "printFailedHint": "La vente est enregistrée. Vérifiez l'imprimante puis réessayez.",
     "saleSaved": "Vente enregistrée",

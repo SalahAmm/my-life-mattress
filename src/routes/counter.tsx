@@ -169,6 +169,19 @@ export function CounterPage({ session }: { session: Session }) {
     },
   })
 
+  const browserPrintMutation = useMutation({
+    mutationFn: async (saleId: number) => {
+      const result = await api.printing.printInBrowser(saleId)
+      if (!result.success) {
+        throw new Error(t('counter.printFailedHint'))
+      }
+      return result
+    },
+    onError: (error: Error) => {
+      setPrintError(error.message)
+    },
+  })
+
   const finishSale = () => {
     setPreviewSale(null)
     setPreviewOpen(false)
@@ -535,6 +548,9 @@ export function CounterPage({ session }: { session: Session }) {
           printError={printError}
           finishLabel={t('counter.finish')}
           onFinish={finishSale}
+          browserPrintLabel={t('counter.printBrowser')}
+          onBrowserPrint={() => browserPrintMutation.mutateAsync(previewSale.id)}
+          browserPrinting={browserPrintMutation.isPending}
         />
       )}
       {previewSale && !previewOpen && (

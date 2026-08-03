@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Printer, X } from 'lucide-react'
+import { Globe, Printer, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -14,6 +14,9 @@ interface PrintPreviewDialogProps {
   printError: string | null
   finishLabel?: string
   onFinish?: () => void
+  browserPrintLabel?: string
+  onBrowserPrint?: () => Promise<unknown>
+  browserPrinting?: boolean
 }
 
 export function PrintPreviewDialog({
@@ -26,6 +29,9 @@ export function PrintPreviewDialog({
   printError,
   finishLabel,
   onFinish,
+  browserPrintLabel,
+  onBrowserPrint,
+  browserPrinting = false,
 }: PrintPreviewDialogProps) {
   const { t } = useTranslation()
 
@@ -52,6 +58,12 @@ export function PrintPreviewDialog({
           {finishLabel && onFinish && (
             <Button variant="outline" onClick={onFinish}>
               {finishLabel}
+            </Button>
+          )}
+          {browserPrintLabel && onBrowserPrint && (
+            <Button variant="outline" onClick={() => void onBrowserPrint()} disabled={browserPrinting}>
+              <Globe className="size-4" />
+              {browserPrintLabel}
             </Button>
           )}
           <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => void onPrint()} disabled={printing}>

@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 — Counter (desktop)
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] "Imprimer via navigateur" opens the print window with the identical document and triggers the print dialog
 - [ ] Sale state safe on cancel/failure; cart resets only via Terminer la vente

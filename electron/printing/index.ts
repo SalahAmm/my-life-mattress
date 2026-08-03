@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { ReceiptFontUrls } from '@shared/printing/receipt'
 import { renderReceiptHtml } from '@shared/printing/receipt'
+import { appendPrintScript } from '@shared/printing/print-script'
 import { getReceiptSettings } from '../db/queries/receipt-settings'
 import { getSale } from '../db/queries/sales'
 import { chooseLogoSrc } from './logo'
@@ -67,16 +68,19 @@ function brandLogoDataUri(): string | null {
   return brandLogoUri
 }
 
-export async function printReceipt(db: Database, saleId: number): Promise<{ success: boolean; reason?: string }> {
+export function receiptHtmlForSale(db: Database, saleId: number): string {
   const sale = getSale(db, saleId)
   const settings = getReceiptSettings(db)
-  const html = renderReceiptHtml({
+  return renderReceiptHtml({
     sale,
     settings,
     fontUrls: mainProcessFontUrls(),
     logoSrc: chooseLogoSrc(settings.logo_path ? logoDataUri(settings.logo_path) : null, brandLogoDataUri()),
   })
-  return printHtml(html, `Ticket ${saleId}`)
+}
+
+export async function printReceipt(db: Database, saleId: number): Promise<{ success: boolean; reason?: string }> {
+  return printHtml(receiptHtmlForSale(db, saleId), `Ticket ${saleId}`)
 }
 
 function logoDataUri(filePath: string): string {
@@ -84,4 +88,25 @@ function logoDataUri(filePath: string): string {
   const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
   const base64 = fs.readFileSync(filePath).toString('base64')
   return `data:${mime};base64,${base64}`
+}
+
+export function printInBrowser(html: string, title: string): Promise<{ success: boolean; reason?: string }> {
+  return new Promise((resolve) => {
+    const win = new BrowserWindow({
+      show: true,
+      width: 420,
+      height: 700,
+      autoHideMenuBar: true,
+      webPreferences: { sandbox: true, contextIsolation: true },
+    })
+    win.setTitle(title)
+    win.webContents.on('did-fail-load', (_event, _code, desc) => {
+      win.destroy()
+      resolve({ success: false, reason: desc })
+    })
+    win.on('closed', () => {
+      resolve({ success: true })
+    })
+    void win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(appendPrintScript(html))}`)
+  })
 }

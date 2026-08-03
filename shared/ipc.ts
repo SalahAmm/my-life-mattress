@@ -72,6 +72,7 @@ export interface ElectronAPI {
   }
   printing: {
     printReceipt(saleId: number): Promise<PrintResult>
+    printInBrowser(saleId: number): Promise<PrintResult>
   }
   settings: {
     get(): Promise<ReceiptSettings>
