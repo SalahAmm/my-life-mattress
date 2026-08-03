@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Theme system and brand tokens
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed `feat: brand logo everywhere + editable receipt appearance`. Bundled logo (public/brand + electron/assets/brand) used in Login/sidebar/receipt/Settings with fallback logic; receipt template honors phone/quantity/store-name; IPC no longer forces toggles; Settings › Reçu editor gained the toggles + live preview. Seams A–D tested; suite 115/115; typecheck clean.
 
 - [ ] Logo renders in Login, sidebar, Settings preview, and printed receipt (data URI in print, app-asset URL in preview)
 - [ ] Receipt toggles (phone/quantity/delivery note) and store name persist and change actual printed output
