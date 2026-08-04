@@ -15,6 +15,7 @@ import { CounterPage } from '@/routes/counter'
 import { StockPage } from '@/routes/stock'
 import { SettingsPage } from '@/routes/settings'
 import { DeliveryPage } from '@/routes/delivery'
+import { ReportsPage } from '@/routes/reports'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 interface NavItem {
@@ -55,7 +56,7 @@ export function AppShell({ session }: { session: Session }) {
               path="/reports"
               element={
                 session.role === 'owner' ? (
-                  <PlaceholderPage icon={BarChart3} titleKey="nav.reports" />
+                  <ReportsPage session={session} />
                 ) : (
                   <Navigate to="/" replace />
                 )

@@ -97,6 +97,27 @@
       "cancelled": "Annulé"
     }
   },
+  "reports": {
+    "title": "Rapports",
+    "today": "Aujourd'hui",
+    "week": "Cette Semaine",
+    "month": "Ce Mois",
+    "year": "Cette Année",
+    "revenue": "Chiffre d'affaires",
+    "deposits": "Acomptes collectés",
+    "outstanding": "Solde en attente",
+    "salesCount": "Nombre de ventes",
+    "topProducts": "Produits les plus vendus",
+    "salesTable": "Ventes de la période",
+    "orderNo": "N° Commande",
+    "customer": "Client",
+    "wilaya": "Wilaya",
+    "total": "Total",
+    "paid": "Payé",
+    "due": "Solde dû",
+    "noSales": "Aucune vente",
+    "noSalesHint": "Aucune vente sur cette période."
+  },
   "counter": {
     "title": "Vente Rapide",
     "searchPlaceholder": "Rechercher un produit, une couleur ou une taille…",
