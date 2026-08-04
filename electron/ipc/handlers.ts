@@ -87,6 +87,16 @@ export function requireOwner(auth: AuthService): Session {
   return session
 }
 
+export function canAccessDelivery(role: Session['role'], employeesCanAccessDelivery: boolean): boolean {
+  return role === 'owner' || employeesCanAccessDelivery
+}
+
+function requireDeliveryAccess(session: Session, employeesCanAccessDelivery: boolean): void {
+  if (!canAccessDelivery(session.role, employeesCanAccessDelivery)) {
+    throw new AppError('UNAUTHORIZED', 'Delivery access is disabled for employees')
+  }
+}
+
 export function effectiveListStatus(
   role: Session['role'],
   requested: 'ordered' | 'delivered' | 'cancelled' | undefined,
@@ -199,6 +209,7 @@ export const SETTINGS_SCHEMA = z.object({
   receiptFontScale: z.number().min(0.6).max(2).optional(),
   employeesSeeDelivered: z.boolean().optional(),
   employeesCanCollectDeliver: z.boolean().optional(),
+  employeesCanAccessDelivery: z.boolean().optional(),
 })
 
 const PAYMENT_SCHEMA = z.object({
@@ -423,19 +434,23 @@ export function registerIpcHandlers(database: Database, authService: AuthService
 
   ipcMain.handle('sales:list', wrap(async ({ payload }) => {
     const session = requireSession(auth)
+    const settings = getReceiptSettings(db)
+    requireDeliveryAccess(session, settings.employees_can_access_delivery ?? false)
     const parsed = z
       .object({ status: z.enum(['ordered', 'delivered', 'cancelled']).optional() })
       .safeParse(payload ?? {})
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
     }
-    const status = effectiveListStatus(session.role, parsed.data.status, getReceiptSettings(db).employees_see_delivered ?? false)
+    const status = effectiveListStatus(session.role, parsed.data.status, settings.employees_see_delivered ?? false)
     return listSales(db, { status })
   }))
 
   ipcMain.handle('sales:addPayment', wrap(async ({ payload }) => {
     const session = requireSession(auth)
-    if (session.role === 'employee' && !(getReceiptSettings(db).employees_can_collect_deliver ?? true)) {
+    const settings = getReceiptSettings(db)
+    requireDeliveryAccess(session, settings.employees_can_access_delivery ?? false)
+    if (session.role === 'employee' && !(settings.employees_can_collect_deliver ?? true)) {
       throw new AppError('UNAUTHORIZED', 'Employés ne peuvent pas encaisser')
     }
     const parsed = PAYMENT_SCHEMA.safeParse(payload)
@@ -447,13 +462,15 @@ export function registerIpcHandlers(database: Database, authService: AuthService
 
   ipcMain.handle('sales:setStatus', wrap(async ({ payload }) => {
     const session = requireSession(auth)
+    const settings = getReceiptSettings(db)
+    requireDeliveryAccess(session, settings.employees_can_access_delivery ?? false)
     const parsed = z.object({ saleId: z.number().int().positive(), status: z.enum(['ordered', 'delivered', 'cancelled']) }).safeParse(payload)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
     }
     if (
       session.role === 'employee' &&
-      !(getReceiptSettings(db).employees_can_collect_deliver ?? true) &&
+      !(settings.employees_can_collect_deliver ?? true) &&
       parsed.data.status === 'delivered'
     ) {
       throw new AppError('UNAUTHORIZED', 'Employés ne peuvent pas livrer')
@@ -573,6 +590,7 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
     }
+    const current = getReceiptSettings(db)
     updateReceiptSettings(db, {
       storeName: parsed.data.storeName,
       defaultDepositPercentages: parsed.data.defaultDepositPercentages,
@@ -585,7 +603,9 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       receiptFontScale: parsed.data.receiptFontScale,
       employeesSeeDelivered: parsed.data.employeesSeeDelivered,
       employeesCanCollectDeliver: parsed.data.employeesCanCollectDeliver,
-      logoPath: getReceiptSettings(db).logo_path,
+      employeesCanAccessDelivery:
+        parsed.data.employeesCanAccessDelivery ?? current.employees_can_access_delivery ?? false,
+      logoPath: current.logo_path,
     })
   }))
 
@@ -618,6 +638,7 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       receiptFontScale: current.receipt_font_scale,
       employeesSeeDelivered: current.employees_see_delivered,
       employeesCanCollectDeliver: current.employees_can_collect_deliver,
+      employeesCanAccessDelivery: current.employees_can_access_delivery,
       logoPath: target,
     })
     return target

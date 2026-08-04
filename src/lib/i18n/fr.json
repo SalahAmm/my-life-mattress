@@ -343,6 +343,8 @@
     "invalidHeight": "Hauteur entre 40 et 500 mm.",
     "deliveryVisibility": "Livraisons",
     "deliveryVisibilityHelp": "Contrôlez ce que les employés peuvent voir sur l'écran de livraison.",
+    "employeesCanAccessDelivery": "Les employés peuvent voir la section Livraison",
+    "employeesCanAccessDeliveryHelp": "Désactivé, la section est masquée et son accès est bloqué pour les employés. Les commandes avec livraison restent disponibles depuis la caisse.",
     "employeesSeeDelivered": "Les employés peuvent voir l'historique des livraisons",
     "employeesSeeDeliveredHelp": "Par défaut, les employés ne voient que les commandes à livrer.",
     "employeesCanCollectDeliver": "Les employés peuvent encaisser et livrer",

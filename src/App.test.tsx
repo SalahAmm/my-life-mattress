@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { AuthStatus } from '@shared/ipc'
@@ -25,19 +25,44 @@ const mockApi = {
   auth: mockAuth,
   products: { list: vi.fn().mockResolvedValue([]) },
   categories: { list: vi.fn().mockResolvedValue([]) },
+  settings: {
+    get: vi.fn(),
+    updateReceipt: vi.fn(),
+    uploadLogo: vi.fn(),
+  },
 }
 
 let currentStatus: AuthStatus
+let employeeDeliveryAccess = true
 
 beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
   window.electronAPI = mockApi as never
   currentStatus = { needsSetup: true, session: null }
+  employeeDeliveryAccess = true
+  mockApi.settings.get.mockResolvedValue({
+    id: 1,
+    store_name: 'My Life Mattress',
+    logo_path: null,
+    default_deposit_percentages: [30, 50, 70],
+    dimension_presets: ['90x190', '160x190', '180x200'],
+    show_delivery_note: true,
+    show_phone_on_receipt: true,
+    show_quantity_on_receipt: true,
+    employees_see_delivered: false,
+    employees_can_collect_deliver: true,
+    employees_can_access_delivery: employeeDeliveryAccess,
+    updated_at: '',
+  })
   mockAuth.status.mockImplementation(async () => currentStatus)
 })
 
-function renderApp() {
+function CurrentPath() {
+  return <span data-testid="current-path">{useLocation().pathname}</span>
+}
+
+function renderApp(initialEntries = ['/']) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
@@ -45,7 +70,8 @@ function renderApp() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <ThemeProvider>
-          <MemoryRouter>
+          <MemoryRouter initialEntries={initialEntries}>
+            <CurrentPath />
             <App />
           </MemoryRouter>
         </ThemeProvider>
@@ -81,12 +107,31 @@ describe('App routing', () => {
     currentStatus = { needsSetup: false, session: employeeSession }
     renderApp()
     await waitFor(() => expect(screen.getByText('Sofiane')).toBeInTheDocument())
+    await screen.findByRole('link', { name: 'Livraison' })
     for (const label of ['Vente Rapide', 'Livraison', 'Guide']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0)
     }
     for (const label of ['Stock', 'Rapports', 'Paramètres']) {
       expect(screen.queryByText(label)).not.toBeInTheDocument()
     }
+  })
+
+  it('an employee session hides Delivery and redirects to Counter when access is disabled', async () => {
+    employeeDeliveryAccess = false
+    currentStatus = { needsSetup: false, session: employeeSession }
+    renderApp(['/delivery'])
+    await waitFor(() => expect(screen.getByText('Sofiane')).toBeInTheDocument())
+    expect(screen.queryByRole('link', { name: 'Livraison' })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('current-path')).toHaveTextContent('/'))
+  })
+
+  it('fails closed when employee Delivery settings cannot be loaded', async () => {
+    mockApi.settings.get.mockRejectedValue(new Error('settings unavailable'))
+    currentStatus = { needsSetup: false, session: employeeSession }
+    renderApp(['/delivery'])
+    await waitFor(() => expect(screen.getByText('Sofiane')).toBeInTheDocument())
+    expect(screen.queryByRole('link', { name: 'Livraison' })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('current-path')).toHaveTextContent('/'))
   })
 
   it('creating the owner account signs the user in and shows the shell', async () => {

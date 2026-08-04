@@ -60,7 +60,7 @@ The owner role — full access including Stock, Rapports, Paramètres, backups.
 _Avoid_: admin, boss
 
 **Employé**:
-The employee role — counter, delivery desk and guide only. Never sees revenue aggregates, stock management, suppliers, or settings; enforced at the IPC layer, not the UI.
+The employee role — counter and guide, plus the delivery desk when enabled by the owner. Never sees revenue aggregates, stock management, suppliers, or settings; enforced at the IPC layer, not the UI.
 
 **Impression (Électron)**:
 Printing through Electron's native print pipeline (system print dialog).

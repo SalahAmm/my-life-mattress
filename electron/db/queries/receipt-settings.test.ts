@@ -118,6 +118,11 @@ describe('receipt settings', () => {
     expect(getReceiptSettings(db).employees_can_collect_deliver).toBe(true)
   })
 
+  it('migration v9: employees cannot access Delivery by default', () => {
+    const db = createDatabase(':memory:')
+    expect(getReceiptSettings(db).employees_can_access_delivery).toBe(false)
+  })
+
   it('round-trips the employees_see_delivered flag', () => {
     const db = createDatabase(':memory:')
     updateReceiptSettings(db, {
@@ -146,5 +151,20 @@ describe('receipt settings', () => {
       employeesCanCollectDeliver: false,
     })
     expect(getReceiptSettings(db).employees_can_collect_deliver).toBe(false)
+  })
+
+  it('round-trips the employees_can_access_delivery flag', () => {
+    const db = createDatabase(':memory:')
+    updateReceiptSettings(db, {
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      logoPath: null,
+      dimensionPresets: [],
+      employeesCanAccessDelivery: true,
+    })
+    expect(getReceiptSettings(db).employees_can_access_delivery).toBe(true)
   })
 })
