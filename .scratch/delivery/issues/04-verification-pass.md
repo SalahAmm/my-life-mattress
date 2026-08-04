@@ -4,7 +4,11 @@
 
 **Blocked by:** 01, 02, 03
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Resolved: delivery effort + Ajouté le in stock (product created_at under name). Suite 203/203, typecheck clean.
 
 - [ ] All tickets' acceptance criteria hold on the running app
 - [ ] Full suite + typecheck + build green

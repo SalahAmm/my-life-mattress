@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Wilayas + counter fields; 02 — Delivery data
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Resolved: delivery screen with money-first card redesign — SOLDE DÛ hero (red/green), one combined action (Encaisser et livrer / Marquer comme livré), À encaisser KPI owner-only. Suite 203/203.
 
 - [ ] KPI cards with live counts; À encaisser card owner-only
 - [ ] Orders grouped by wilaya with status tabs and search
