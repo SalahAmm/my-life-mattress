@@ -24,6 +24,7 @@
     },
     "files": [
       "out/**",
+      "dist/**",
       "package.json"
     ],
     "asarUnpack": [
