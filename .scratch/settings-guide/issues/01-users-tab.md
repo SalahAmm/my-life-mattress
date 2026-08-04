@@ -4,7 +4,11 @@
 
 **Blocked by:** None
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: Utilisateurs tab. Suite 228/228; typecheck clean.
 
 - [ ] Guard: cannot deactivate self or the last active owner
 - [ ] Employee account created with hashed password can log in

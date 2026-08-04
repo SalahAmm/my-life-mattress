@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can be done in parallel with 01)
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Backup writes a full copy to the chosen location
 - [ ] Restore validates the picked file (SQLite header), backs up the current DB, replaces it, flags restart
