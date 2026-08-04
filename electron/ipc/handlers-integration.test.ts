@@ -90,3 +90,24 @@ describe('delivery IPC guards (owner)', () => {
     expect(result.ok).toBe(true)
   })
 })
+
+describe('stock input validation (owner)', () => {
+  beforeEach(() => {
+    registerIpcHandlers(db, authWith('owner'))
+  })
+
+  it('rejects restock with zero or negative quantity', async () => {
+    const zero = await call('stock:restock', { productVariantId: 1, quantity: 0 })
+    expect(zero.ok).toBe(false)
+    expect(zero.error?.code).toBe('VALIDATION_ERROR')
+    const negative = await call('stock:restock', { productVariantId: 1, quantity: -1 })
+    expect(negative.ok).toBe(false)
+    expect(negative.error?.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('rejects a zero stock adjustment', async () => {
+    const result = await call('stock:adjust', { productVariantId: 1, change: 0, reason: 'test' })
+    expect(result.ok).toBe(false)
+    expect(result.error?.code).toBe('VALIDATION_ERROR')
+  })
+})

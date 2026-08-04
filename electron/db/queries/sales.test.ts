@@ -87,6 +87,54 @@ describe('sales queries', () => {
     expect(listProducts(db)[0].variants[0].quantity_on_hand).toBe(-6)
   })
 
+  it('leaves a zero remaining balance after two partial payments', () => {
+    const { db, owner, product } = seed(database())
+    const variant = product.variants[0]
+    const saleId = createSale(
+      db,
+      saleArgs(owner, {
+        items: [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }],
+        payment: { amount: 15000, type: 'deposit', enteredAsPercentage: null },
+      }),
+    )
+    addPayment(db, { saleId, amount: 30000, type: 'balance', enteredAsPercentage: null })
+    const sale = getSale(db, saleId)
+    expect(sale.remaining).toBe(0)
+    expect(sale.paid).toBe(45000)
+  })
+
+  it('refuses payment on a cancelled sale', () => {
+    const { db, owner, product } = seed(database())
+    const variant = product.variants[0]
+    const saleId = createSale(
+      db,
+      saleArgs(owner, {
+        items: [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }],
+      }),
+    )
+    cancelSale(db, { saleId, createdBy: owner })
+    expect(() => addPayment(db, { saleId, amount: 1000, type: 'balance', enteredAsPercentage: null })).toThrow(
+      /cancelled/i,
+    )
+  })
+
+  it('cancelling a delivered sale restores stock, marks cancelled and keeps payments', () => {
+    const { db, owner, product } = seed(database())
+    const variant = product.variants[0]
+    const saleId = createSale(
+      db,
+      saleArgs(owner, {
+        items: [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }],
+        payment: { amount: 45000, type: 'full', enteredAsPercentage: null },
+      }),
+    )
+    setSaleStatus(db, saleId, 'delivered')
+    cancelSale(db, { saleId, createdBy: owner })
+    expect(listProducts(db)[0].variants[0].quantity_on_hand).toBe(4)
+    expect(getSale(db, saleId).status).toBe('cancelled')
+    expect(getSale(db, saleId).payments).toHaveLength(1)
+  })
+
   it('saves custom items with their description and price, without touching stock', () => {
     const { db, owner, product } = seed(database())
     const variant = product.variants[0]

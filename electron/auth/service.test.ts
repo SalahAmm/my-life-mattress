@@ -62,6 +62,16 @@ describe('AuthService', () => {
     await expect(auth.login('Kamel', 'secret123')).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' })
   })
 
+  it('invalidates the live session when the user is deactivated mid-session', async () => {
+    const { db, auth } = setup()
+    await auth.setupOwner({ username: 'Kamel', password: 'secret123' })
+    await auth.login('Kamel', 'secret123')
+    expect(auth.getSession()).not.toBeNull()
+    const session = auth.getSession()!
+    db.prepare('UPDATE users SET active = 0 WHERE id = ?').run(session.userId)
+    expect(auth.getSession()).toBeNull()
+  })
+
   it('keeps a single session in memory and logs out', async () => {
     const { auth } = setup()
     await auth.setupOwner({ username: 'Kamel', password: 'secret123' })
