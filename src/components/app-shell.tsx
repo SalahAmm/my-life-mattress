@@ -10,12 +10,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/ipc-client'
 import { useAppLanguage } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
-import { PlaceholderPage } from '@/routes/placeholder'
 import { CounterPage } from '@/routes/counter'
 import { StockPage } from '@/routes/stock'
 import { SettingsPage } from '@/routes/settings'
 import { DeliveryPage } from '@/routes/delivery'
 import { ReportsPage } from '@/routes/reports'
+import { GuidePage } from '@/routes/guide'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 interface NavItem {
@@ -66,7 +66,7 @@ export function AppShell({ session }: { session: Session }) {
               path="/settings"
               element={session.role === 'owner' ? <SettingsPage /> : <Navigate to="/" replace />}
             />
-            <Route path="/guide" element={<PlaceholderPage icon={BookOpen} titleKey="nav.guide" />} />
+            <Route path="/guide" element={<GuidePage session={session} />} />
           </Routes>
         </main>
       </SidebarInset>

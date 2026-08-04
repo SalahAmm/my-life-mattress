@@ -122,6 +122,44 @@
     "csvSaved": "Fichier CSV enregistré",
     "print": "Imprimer le Rapport"
   },
+  "guide": {
+    "title": "Guide d'utilisation",
+    "quickstart": {
+      "title": "Démarrage rapide",
+      "description": "Votre magasin fonctionne entièrement hors ligne : tout est enregistré sur cet ordinateur.",
+      "points": ["Aucune connexion Internet n'est nécessaire pour encaisser.", "Pensez à faire une sauvegarde (Réglages → Données) chaque semaine."]
+    },
+    "counter": {
+      "title": "Comptoir (vente)",
+      "description": "La page d'accueil : encaisser une vente en trois étapes.",
+      "points": ["Recherchez le produit par nom ou dimension, puis choisissez la taille.", "Entrez le nom du client et la wilaya pour les livraisons.", "Paiement : total, acompte (pourcentage ou montant) ou rien — le solde dû reste enregistré."]
+    },
+    "stock": {
+      "title": "Gestion du stock",
+      "description": "Réservé au propriétaire.",
+      "points": ["Ajoutez des produits avec plusieurs tailles et des prix de vente.", "Réapprovisionnez ou ajustez le stock en cas d'écart (raison obligatoire).", "L'historique des mouvements suit chaque vente et chaque réapprovisionnement."]
+    },
+    "delivery": {
+      "title": "Livraison",
+      "description": "Suivez les commandes non livrées.",
+      "points": ["Les commandes en attente affichent le solde dû du client.", "« Encaisser et livrer » prend le solde puis marque la commande livrée.", "Une commande payée se livre en un clic."]
+    },
+    "reports": {
+      "title": "Rapports",
+      "description": "Réservé au propriétaire.",
+      "points": ["Chiffre d'affaires, acomptes collectés, solde en attente et nombre de ventes.", "Choisissez Aujourd'hui, la semaine, le mois, l'année ou une période personnalisée.", "Imprimez le rapport en A4 ou exportez-le en CSV pour votre comptable."]
+    },
+    "settings": {
+      "title": "Réglages",
+      "description": "Réservé au propriétaire.",
+      "points": ["Reçu : nom du magasin, logo, pourcentages d'acompte et mentions.", "Utilisateurs : créez des comptes vendeurs pour le personnel.", "Données : sauvegarde et restauration de la base."]
+    },
+    "tips": {
+      "title": "Conseils",
+      "description": "Bonnes pratiques au quotidien.",
+      "points": ["Encaissez l'acompte au minimum pour éviter les oublis.", "Vérifiez le stock après chaque réception de marchandise.", "En cas de doute, faites une sauvegarde avant de restaurer."]
+    }
+  },
   "counter": {
     "title": "Vente Rapide",
     "searchPlaceholder": "Rechercher un produit, une couleur ou une taille…",
