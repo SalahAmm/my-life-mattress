@@ -12,7 +12,7 @@ import {
   setSaleStatus,
   type CreateSaleArgs,
 } from './sales'
-import { listMovementsForStockItem } from './stock'
+import { listMovementsForVariant } from './stock'
 
 function database() {
   return createDatabase(':memory:')
@@ -67,7 +67,7 @@ describe('sales queries', () => {
     expect(sale.total).toBe(90000)
     const after = listProducts(db)[0].variants[0]
     expect(after.quantity_on_hand).toBe(2)
-    const movements = listMovementsForStockItem(db, variant.id)
+    const movements = listMovementsForVariant(db, variant.id)
     expect(movements).toHaveLength(1)
     expect(movements[0].change).toBe(-2)
     expect(movements[0].reason).toBe('sale')
@@ -194,7 +194,7 @@ describe('sales queries', () => {
     cancelSale(db, { saleId, createdBy: owner })
     expect(getSale(db, saleId).status).toBe('cancelled')
     expect(listProducts(db)[0].variants[0].quantity_on_hand).toBe(4)
-    const movements = listMovementsForStockItem(db, variant.id)
+    const movements = listMovementsForVariant(db, variant.id)
     expect(movements.map((m) => m.change)).toEqual([2, -2])
   })
 

@@ -36,6 +36,11 @@ const api: ElectronAPI = {
   categories: {
     list: () => invoke('categories:list'),
   },
+  stock: {
+    restock: (input) => invoke('stock:restock', input),
+    adjust: (input) => invoke('stock:adjust', input),
+    movements: (productVariantId) => invoke('stock:movements', productVariantId),
+  },
   sales: {
     create: (payload) => invoke('sales:create', payload),
     get: (id) => invoke('sales:get', id),

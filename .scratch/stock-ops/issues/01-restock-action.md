@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] stock:restock IPC (owner-only) with validation
 - [ ] Row action + dialog; movement recorded with reason restock

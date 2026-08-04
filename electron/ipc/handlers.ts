@@ -11,6 +11,7 @@ import { logError } from '../log'
 import { listActiveCategories } from '../db/queries/categories'
 import { listCounterProducts, createProduct, deactivateProduct, listProducts, listTopSellers, updateProduct } from '../db/queries/products'
 import { createSupplier, listSuppliers, setSupplierActive } from '../db/queries/suppliers'
+import { adjustStock, listMovementsForVariant, restock } from '../db/queries/stock'
 import {
   addPayment,
   cancelSale,
@@ -274,6 +275,38 @@ export function registerIpcHandlers(database: Database, authService: AuthService
   ipcMain.handle('categories:list', wrap(async () => {
     requireSession(auth)
     return listActiveCategories(db)
+  }))
+
+  ipcMain.handle('stock:restock', wrap(async ({ payload }) => {
+    const session = requireOwner(auth)
+    const parsed = z
+      .object({ productVariantId: z.number().int().positive(), quantity: z.number().int().min(1).max(1_000_000) })
+      .safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    restock(db, { productVariantId: parsed.data.productVariantId, quantity: parsed.data.quantity, createdBy: session.userId })
+  }))
+
+  ipcMain.handle('stock:adjust', wrap(async ({ payload }) => {
+    const session = requireOwner(auth)
+    const parsed = z
+      .object({
+        productVariantId: z.number().int().positive(),
+        change: z.number().int().min(-1_000_000).max(1_000_000).refine((v) => v !== 0, { message: 'Change cannot be zero' }),
+        reason: z.string().trim().min(1).max(300),
+      })
+      .safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    adjustStock(db, { productVariantId: parsed.data.productVariantId, change: parsed.data.change, createdBy: session.userId })
+  }))
+
+  ipcMain.handle('stock:movements', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const productVariantId = z.number().int().positive().parse(payload)
+    return listMovementsForVariant(db, productVariantId)
   }))
 
   ipcMain.handle('sales:create', wrap(async ({ payload }) => {

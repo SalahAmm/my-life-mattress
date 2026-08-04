@@ -51,6 +51,11 @@ const mockApi = {
     create: vi.fn().mockResolvedValue(2),
     setActive: vi.fn().mockResolvedValue(undefined),
   },
+  stock: {
+    restock: vi.fn().mockResolvedValue(undefined),
+    adjust: vi.fn().mockResolvedValue(undefined),
+    movements: vi.fn().mockResolvedValue([]),
+  },
   categories: { list: vi.fn().mockResolvedValue([{ id: 1, name: 'Matelas', sort_order: 0, active: true }]) },
   sales: { create: vi.fn(), get: vi.fn(), recent: vi.fn(), addPayment: vi.fn(), setStatus: vi.fn(), cancel: vi.fn() },
   printing: { printReceipt: vi.fn(), printInBrowser: vi.fn() },
@@ -96,6 +101,58 @@ describe('StockPage (ticket 08)', () => {
     renderStock()
     const cell = (await screen.findAllByText('Matelas Elite'))[0].closest('td') as HTMLElement
     expect(within(cell).getByText(/Ajouté le/)).toBeInTheDocument()
+  })
+
+  it('restocks a variant via the row action and dialog', async () => {
+    renderStock()
+    const user = userEvent.setup()
+    await screen.findAllByText('Matelas Elite')
+    const row = screen.getAllByText('160x190')[0].closest('tr') as HTMLElement
+    await user.click(within(row).getByRole('button', { name: /Réapprovisionner/ }))
+    await user.type(await screen.findByLabelText(/Quantité/), '5')
+    await user.click(screen.getByRole('button', { name: /Réapprovisionner/ }))
+    await waitFor(() => expect(mockApi.stock.restock).toHaveBeenCalled())
+    const input = vi.mocked(mockApi.stock.restock).mock.calls.at(-1)![0] as {
+      productVariantId: number
+      quantity: number
+    }
+    expect(input.quantity).toBe(5)
+  })
+
+  it('adjusts stock with a required reason', async () => {
+    renderStock()
+    const user = userEvent.setup()
+    await screen.findAllByText('Matelas Elite')
+    const row = screen.getAllByText('160x190')[0].closest('tr') as HTMLElement
+    await user.click(within(row).getByRole('button', { name: /Ajuster/ }))
+    await user.type(await screen.findByLabelText(/Quantité/), '-1')
+    await user.click(screen.getByRole('button', { name: /Enregistrer l'ajustement/ }))
+    expect(mockApi.stock.adjust).not.toHaveBeenCalled()
+    await user.type(screen.getByLabelText(/Raison/), 'Article endommagé')
+    await user.click(screen.getByRole('button', { name: /Enregistrer l'ajustement/ }))
+    await waitFor(() => expect(mockApi.stock.adjust).toHaveBeenCalled())
+    const input = vi.mocked(mockApi.stock.adjust).mock.calls.at(-1)![0] as {
+      productVariantId: number
+      change: number
+      reason: string
+    }
+    expect(input.change).toBe(-1)
+    expect(input.reason).toBe('Article endommagé')
+  })
+
+  it('opens the movements history drawer for a variant', async () => {
+    vi.mocked(mockApi.stock.movements).mockResolvedValue([
+      { id: 1, stock_item_id: 1, change: -1, reason: 'sale', reference_id: 7, created_at: '2026-08-03T10:00:00.000Z', created_by: 1 },
+      { id: 2, stock_item_id: 1, change: 5, reason: 'restock', reference_id: null, created_at: '2026-08-02T10:00:00.000Z', created_by: 1 },
+    ])
+    renderStock()
+    const user = userEvent.setup()
+    await screen.findAllByText('Matelas Elite')
+    const row = screen.getAllByText('160x190')[0].closest('tr') as HTMLElement
+    await user.click(within(row).getByRole('button', { name: /Historique/ }))
+    await waitFor(() => expect(mockApi.stock.movements).toHaveBeenCalled())
+    expect(screen.getAllByText(/Vente/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/Réapprovisionnement/).length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows KPI cards with live variant counts', async () => {

@@ -73,7 +73,7 @@ describe('products queries', () => {
     const user = createUser(db, { username: 'u', passwordHash: 'x', role: 'owner' })
     const product = listProducts(db)[0]
     const variant = product.variants[0]
-    const movement = restock(db, { stockItemId: variant.id, quantity: 3, createdBy: user })
+    const movement = restock(db, { productVariantId: variant.id, quantity: 3, createdBy: user })
     expect(movement.change).toBe(3)
     const after = listProducts(db)[0].variants[0]
     expect(after.quantity_on_hand).toBe(7)

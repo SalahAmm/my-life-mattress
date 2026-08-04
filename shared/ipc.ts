@@ -10,6 +10,7 @@ import type {
   SaleStatus,
   SaleWithDetails,
   Session,
+  StockMovement,
   Supplier,
   TopSeller,
 } from './types'
@@ -77,6 +78,11 @@ export interface ElectronAPI {
   }
   categories: {
     list(): Promise<Category[]>
+  }
+  stock: {
+    restock(input: { productVariantId: number; quantity: number }): Promise<void>
+    adjust(input: { productVariantId: number; change: number; reason: string }): Promise<void>
+    movements(productVariantId: number): Promise<StockMovement[]>
   }
   sales: {
     create(payload: NewSalePayload): Promise<number>

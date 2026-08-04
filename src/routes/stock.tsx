@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Copy, ImagePlus, Loader2, Package, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Copy, History, ImagePlus, Loader2, Package, Pencil, Plus, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDzd } from '@shared/money'
 import { variantLabel } from '@shared/variants'
@@ -24,6 +24,7 @@ import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PageHeader } from '@/components/management/page-header'
 import { EmptyState } from '@/components/management/empty-state'
@@ -127,6 +128,9 @@ export function StockPage() {
   const [editingProduct, setEditingProduct] = useState<ProductWithVariants | null>(null)
   const [copyProduct, setCopyProduct] = useState<ProductWithVariants | null>(null)
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
+  const [restockTarget, setRestockTarget] = useState<number | null>(null)
+  const [adjustTarget, setAdjustTarget] = useState<number | null>(null)
+  const [historyTarget, setHistoryTarget] = useState<number | null>(null)
   const [filter, setFilter] = useState<StockFilter>('all')
   const [search, setSearch] = useState('')
   const [selectedSupplier, setSelectedSupplier] = useState<number | null>(null)
@@ -163,6 +167,28 @@ export function StockPage() {
       void queryClient.invalidateQueries({ queryKey: ['stock-products'] })
       toast.success(t('stock.supplierRemoved'))
     },
+  })
+
+  const restockMutation = useMutation({
+    mutationFn: (input: { productVariantId: number; quantity: number }) => api.stock.restock(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['stock-products'] })
+      void queryClient.invalidateQueries({ queryKey: ['counter-products'] })
+      toast.success(t('stock.restocked'))
+      setRestockTarget(null)
+    },
+    onError: (error: Error) => toast.error(error.message),
+  })
+
+  const adjustMutation = useMutation({
+    mutationFn: (input: { productVariantId: number; change: number; reason: string }) => api.stock.adjust(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['stock-products'] })
+      void queryClient.invalidateQueries({ queryKey: ['counter-products'] })
+      toast.success(t('stock.adjusted'))
+      setAdjustTarget(null)
+    },
+    onError: (error: Error) => toast.error(error.message),
   })
 
   const counts = useMemo(() => {
@@ -392,6 +418,33 @@ export function StockPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-7"
+                          onClick={() => setRestockTarget(variant.id)}
+                        >
+                          <Plus className="size-3.5" />
+                          {t('stock.restock')}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7"
+                          onClick={() => setAdjustTarget(variant.id)}
+                        >
+                          <SlidersHorizontal className="size-3.5" />
+                          {t('stock.adjust')}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          aria-label={t('stock.history')}
+                          onClick={() => setHistoryTarget(variant.id)}
+                        >
+                          <History className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="h-7 text-destructive"
                           onClick={() => deactivateMutation.mutate(product.id)}
                         >
@@ -416,6 +469,23 @@ export function StockPage() {
         suppliers={suppliers.map((s) => ({ id: s.id, name: s.name }))}
       />
       <AddSupplierDialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen} />
+      <RestockDialog
+        productVariantId={restockTarget}
+        onClose={() => setRestockTarget(null)}
+        onConfirm={(quantity) =>
+          restockMutation.mutate({ productVariantId: restockTarget!, quantity })
+        }
+        submitting={restockMutation.isPending}
+      />
+      <AdjustDialog
+        productVariantId={adjustTarget}
+        onClose={() => setAdjustTarget(null)}
+        onConfirm={(change, reason) =>
+          adjustMutation.mutate({ productVariantId: adjustTarget!, change, reason })
+        }
+        submitting={adjustMutation.isPending}
+      />
+      <HistoryDrawer productVariantId={historyTarget} onClose={() => setHistoryTarget(null)} />
     </div>
   )
 }
@@ -760,5 +830,151 @@ function VariantField({ label, children, className }: { label: string; children:
       <Label className="text-xs text-muted-foreground">{label}</Label>
       {children}
     </div>
+  )
+}
+
+function RestockDialog({
+  productVariantId,
+  onClose,
+  onConfirm,
+  submitting,
+}: {
+  productVariantId: number | null
+  onClose: () => void
+  onConfirm: (quantity: number) => void
+  submitting: boolean
+}) {
+  const { t } = useTranslation()
+  const [quantity, setQuantity] = useState('')
+  return (
+    <Dialog open={productVariantId !== null} onOpenChange={() => onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('stock.restock')}</DialogTitle>
+          <DialogDescription>{t('stock.restockHint')}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="restock-quantity">{t('stock.quantity')}</Label>
+            <Input
+              id="restock-quantity"
+              dir="ltr"
+              inputMode="numeric"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </div>
+          <Button
+            className="w-full"
+            disabled={submitting || Number(quantity) <= 0}
+            onClick={() => onConfirm(Number(quantity))}
+          >
+            {t('stock.restock')}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AdjustDialog({
+  productVariantId,
+  onClose,
+  onConfirm,
+  submitting,
+}: {
+  productVariantId: number | null
+  onClose: () => void
+  onConfirm: (change: number, reason: string) => void
+  submitting: boolean
+}) {
+  const { t } = useTranslation()
+  const [quantity, setQuantity] = useState('')
+  const [reason, setReason] = useState('')
+  return (
+    <Dialog open={productVariantId !== null} onOpenChange={() => onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('stock.adjust')}</DialogTitle>
+          <DialogDescription>{t('stock.adjustHint')}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="adjust-quantity">{t('stock.quantity')}</Label>
+            <Input
+              id="adjust-quantity"
+              dir="ltr"
+              inputMode="numeric"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="-2 ou +3"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="adjust-reason">{t('stock.reason')}</Label>
+            <Input
+              id="adjust-reason"
+              dir="auto"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t('stock.reasonPlaceholder')}
+            />
+          </div>
+          <Button
+            className="w-full"
+            disabled={submitting || Number(quantity) === 0 || !reason.trim()}
+            onClick={() => onConfirm(Number(quantity), reason.trim())}
+          >
+            {t('stock.saveAdjustment')}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function HistoryDrawer({
+  productVariantId,
+  onClose,
+}: {
+  productVariantId: number | null
+  onClose: () => void
+}) {
+  const { t } = useTranslation()
+  const { data: movements = [] } = useQuery({
+    queryKey: ['stock-movements', productVariantId],
+    queryFn: () => api.stock.movements(productVariantId!),
+    enabled: productVariantId !== null,
+  })
+  return (
+    <Sheet open={productVariantId !== null} onOpenChange={() => onClose()}>
+      <SheetContent side="right" className="w-full overflow-y-auto bg-background p-4 sm:max-w-md">
+        <SheetHeader className="mb-3">
+          <SheetTitle>{t('stock.history')}</SheetTitle>
+        </SheetHeader>
+        {movements.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t('stock.noMovements')}</p>
+        ) : (
+          <div className="space-y-2">
+            {movements.map((movement) => (
+              <div key={movement.id} className="flex items-center justify-between rounded-none border p-3 text-sm">
+                <div>
+                  <p className="font-semibold">{t(`stock.movement.${movement.reason}`)}</p>
+                  <p className="text-xs text-muted-foreground" dir="ltr">
+                    {new Date(movement.created_at).toLocaleString('fr-FR')}
+                  </p>
+                </div>
+                <span
+                  className={cn('font-bold', movement.change < 0 ? 'text-destructive' : 'text-success')}
+                  dir="ltr"
+                >
+                  {movement.change > 0 ? `+${movement.change}` : movement.change}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
   )
 }
