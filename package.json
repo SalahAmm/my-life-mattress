@@ -10,10 +10,45 @@
     "dev": "node scripts/dev.mjs",
     "build": "vite build && node scripts/build-main.mjs",
     "start": "npm run build && node scripts/start.mjs",
+    "dist": "node scripts/generate-icon.mjs && npm run build && electron-builder --win nsis",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.electron.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "rebuild": "echo better-sqlite3 v13 ships NAPI prebuilds - no rebuild needed"
+  },
+  "build": {
+    "appId": "com.mylifemattress.app",
+    "productName": "My Life Mattress",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "My-Life-Mattress-Setup-${version}.${ext}"
+    }
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -50,6 +85,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
     "electron": "^43.2.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.28.1",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4.3.3",
