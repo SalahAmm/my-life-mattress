@@ -92,4 +92,22 @@ describe('reportSummary (ticket 01)', () => {
     expect(summary.perProduct[0].label).toBe('Dimension Personnalisée: 170x200')
     expect(summary.perProduct[0].revenue).toBe(70000)
   })
+
+  it('returns zeroed results when the range is reversed (from > to)', () => {
+    const { db, owner, variantOf, at } = seed(createDatabase(':memory:'))
+    at('2026-08-03T10:00:00.000Z', owner, [{ productVariantId: variantOf(1), qty: 1 }])
+    const summary = reportSummary(db, { from: '2026-08-10T00:00:00.000Z', to: '2026-08-01T00:00:00.000Z' })
+    expect(summary.revenue).toBe(0)
+    expect(summary.salesCount).toBe(0)
+    expect(summary.outstanding).toBe(0)
+    expect(summary.depositsCollected).toBe(0)
+  })
+
+  it('includes sales on the same day within the range', () => {
+    const { db, owner, variantOf, at } = seed(createDatabase(':memory:'))
+    at('2026-08-04T10:00:00.000Z', owner, [{ productVariantId: variantOf(1), qty: 1 }])
+    const summary = reportSummary(db, { from: '2026-08-04T00:00:00.000Z', to: '2026-08-05T00:00:00.000Z' })
+    expect(summary.salesCount).toBe(1)
+    expect(summary.revenue).toBe(45000)
+  })
 })

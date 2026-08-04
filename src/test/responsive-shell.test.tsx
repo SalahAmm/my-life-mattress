@@ -12,6 +12,7 @@ import { ThemeProvider } from '@/lib/theme'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 const ownerSession: Session = { userId: 1, username: 'Kamel', role: 'owner' }
+const employeeSession: Session = { userId: 2, username: 'Sofiane', role: 'employee' }
 
 const mockApi = {
   auth: { status: vi.fn(), setupOwner: vi.fn(), login: vi.fn(), logout: vi.fn(), recoverOwner: vi.fn() },
@@ -61,14 +62,14 @@ beforeEach(() => {
   setViewport(1280)
 })
 
-function renderShell() {
+function renderShell(session: Session = ownerSession) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <ThemeProvider>
           <MemoryRouter>
-            <AppShell session={ownerSession} />
+            <AppShell session={session} />
           </MemoryRouter>
         </ThemeProvider>
       </I18nProvider>
@@ -124,5 +125,32 @@ describe('responsive shell (ticket 04)', () => {
     const content = mains.find((m) => m.className.includes('p-4')) as HTMLElement
     expect(content.className).toMatch(/p-4/)
     expect(content.className).toMatch(/md:p-6/)
+  })
+
+  it('the mobile sheet omits Delivery for employees when access is off', async () => {
+    vi.mocked(mockApi.settings.get).mockResolvedValue({
+      id: 1,
+      store_name: 'MLM',
+      logo_path: null,
+      default_deposit_percentages: [30],
+      dimension_presets: [],
+      show_delivery_note: true,
+      show_phone_on_receipt: true,
+      show_quantity_on_receipt: true,
+      employees_see_delivered: false,
+      employees_can_collect_deliver: true,
+      employees_can_access_delivery: false,
+      updated_at: '',
+    })
+    setViewport(600)
+    renderShell(employeeSession)
+    const user = userEvent.setup()
+    const trigger = await screen.findByRole('button', { name: 'Menu' })
+    await user.click(trigger)
+    const dialog = await screen.findAllByRole('dialog')
+    expect(dialog.length).toBeGreaterThan(0)
+    expect(within(dialog[0]).getByText('Vente Rapide')).toBeInTheDocument()
+    expect(within(dialog[0]).getByText('Guide')).toBeInTheDocument()
+    expect(within(dialog[0]).queryByText('Livraison')).not.toBeInTheDocument()
   })
 })
