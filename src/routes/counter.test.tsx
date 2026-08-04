@@ -12,31 +12,33 @@ import { ThemeProvider } from '@/lib/theme'
 
 const ownerSession: Session = { userId: 1, username: 'Kamel', role: 'owner' }
 
+const defaultProducts = [
+  {
+    id: 1,
+    name: 'Matelas Elite',
+    category_id: 1,
+    image_path: null,
+    variants: [
+      { id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
+      { id: 11, dimension: '180x200', name: null, price: 55000, out_of_stock: true, low_stock: false, available_low: null, available_above: null },
+    ],
+  },
+  {
+    id: 2,
+    name: 'Lit Sierra',
+    category_id: 1,
+    image_path: null,
+    variants: [
+      { id: 20, dimension: '', name: 'Sahara', price: 80000, out_of_stock: false, low_stock: true, available_low: 2, available_above: null },
+      { id: 21, dimension: '', name: 'Blanc', price: 82000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
+    ],
+  },
+]
+
 const mockApi = {
   auth: { status: vi.fn(), setupOwner: vi.fn(), login: vi.fn(), logout: vi.fn(), recoverOwner: vi.fn() },
   products: {
-    list: vi.fn().mockResolvedValue([
-      {
-        id: 1,
-        name: 'Matelas Elite',
-        category_id: 1,
-        image_path: null,
-        variants: [
-          { id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
-          { id: 11, dimension: '180x200', name: null, price: 55000, out_of_stock: true, low_stock: false, available_low: null, available_above: null },
-        ],
-      },
-      {
-        id: 2,
-        name: 'Lit Sierra',
-        category_id: 1,
-        image_path: null,
-        variants: [
-          { id: 20, dimension: '', name: 'Sahara', price: 80000, out_of_stock: false, low_stock: true, available_low: 2, available_above: null },
-          { id: 21, dimension: '', name: 'Blanc', price: 82000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
-        ],
-      },
-    ]),
+    list: vi.fn().mockResolvedValue(defaultProducts),
     listFull: vi.fn().mockResolvedValue([]),
     topSellers: vi.fn().mockResolvedValue([
       { id: 1, name: 'Matelas Elite', image_path: null, units_sold: 6 },
@@ -351,5 +353,40 @@ describe('CounterPage checkout layout and uncategorized products', () => {
     await user.click(await screen.findByRole('button', { name: 'Sans catégorie' }))
     expect(screen.getByRole('button', { name: 'Oreiller Solo' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Matelas Elite' })).not.toBeInTheDocument()
+  })
+
+  it('sells an out-of-stock variant (sur commande)', async () => {
+    vi.mocked(mockApi.products.list).mockResolvedValue(defaultProducts)
+    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
+    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
+    renderCounter()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Matelas' }))
+    await user.click(await screen.findByRole('button', { name: 'Matelas Elite' }))
+    await user.click(await screen.findByRole('button', { name: /180x200/ }))
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
+    const payload = vi.mocked(mockApi.sales.create).mock.calls[0][0] as NewSalePayload
+    expect(payload.items).toEqual([
+      { productVariantId: 11, quantity: 1, unitPriceAtSale: 0, customDescription: null },
+    ])
+  })
+
+  it('merges duplicate cart lines by incrementing the quantity', async () => {
+    vi.mocked(mockApi.products.list).mockResolvedValue(defaultProducts)
+    vi.mocked(mockApi.sales.create).mockResolvedValue(7)
+    vi.mocked(mockApi.sales.get).mockResolvedValue(saleFixture)
+    renderCounter()
+    const user = await addVariant()
+    await user.click(await screen.findByRole('button', { name: 'Matelas Elite' }))
+    await user.click(await screen.findByRole('button', { name: /160x190/ }))
+    await user.click(screen.getByRole('button', { name: 'OK' }))
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.sales.create).toHaveBeenCalledTimes(1))
+    const payload = vi.mocked(mockApi.sales.create).mock.calls[0][0] as NewSalePayload
+    expect(payload.items).toEqual([
+      { productVariantId: 10, quantity: 2, unitPriceAtSale: 0, customDescription: null },
+    ])
   })
 })

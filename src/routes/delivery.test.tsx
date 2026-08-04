@@ -98,6 +98,8 @@ const deliveredOld: SaleWithDetails = {
   created_at: '2026-01-15T10:00:00.000Z',
 }
 
+const defaultSales = [orderedAlger, orderedOran, deliveredBlida, paidOrdered, deliveredOld]
+
 const mockApi = {
   auth: { status: vi.fn(), setupOwner: vi.fn(), login: vi.fn(), logout: vi.fn(), recoverOwner: vi.fn() },
   products: {
@@ -115,7 +117,7 @@ const mockApi = {
     create: vi.fn(),
     get: vi.fn(),
     recent: vi.fn(),
-    list: vi.fn().mockResolvedValue([orderedAlger, orderedOran, deliveredBlida, paidOrdered, deliveredOld]),
+    list: vi.fn().mockResolvedValue(defaultSales),
     addPayment: vi.fn().mockResolvedValue(undefined),
     setStatus: vi.fn().mockResolvedValue(undefined),
     cancel: vi.fn(),
@@ -409,5 +411,46 @@ describe('DeliveryPage collect-and-deliver access', () => {
     renderDelivery(ownerSession)
     await screen.findByText('Ahmed Benali')
     expect(screen.getAllByRole('button', { name: /Encaisser et livrer/ }).length).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('DeliveryPage empty states (edge cases)', () => {
+  it('shows the pending empty state when there are no orders', async () => {
+    vi.mocked(mockApi.sales.list).mockResolvedValue([])
+    renderDelivery(ownerSession)
+    expect(await screen.findByText('Aucune commande')).toBeInTheDocument()
+    expect(screen.getByText('Les commandes en attente de livraison apparaîtront ici.')).toBeInTheDocument()
+  })
+
+  it('shows the history empty message when the period has no deliveries', async () => {
+    vi.mocked(mockApi.sales.list).mockResolvedValue([])
+    renderDelivery(ownerSession)
+    const user = userEvent.setup()
+    await screen.findByText('Aucune commande')
+    await user.click(screen.getByRole('tab', { name: 'Livré' }))
+    expect(await screen.findByText('Historique des livraisons')).toBeInTheDocument()
+    expect(screen.getByText('Aucune livraison dans cette période.')).toBeInTheDocument()
+  })
+
+  it('hides collect/deliver actions for employees when collect is disabled', async () => {
+    vi.mocked(mockApi.sales.list).mockResolvedValue(defaultSales)
+    vi.mocked(mockApi.settings.get).mockResolvedValue({
+      id: 1,
+      store_name: 'MLM',
+      logo_path: null,
+      default_deposit_percentages: [30],
+      dimension_presets: ['160x190'],
+      show_delivery_note: true,
+      show_phone_on_receipt: true,
+      show_quantity_on_receipt: true,
+      employees_see_delivered: false,
+      employees_can_collect_deliver: false,
+      employees_can_access_delivery: true,
+      updated_at: '',
+    })
+    renderDelivery(employeeSession)
+    await screen.findByText('Ahmed Benali')
+    expect(screen.queryByRole('button', { name: /Encaisser et livrer/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Marquer comme livré/ })).not.toBeInTheDocument()
   })
 })

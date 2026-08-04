@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { Toaster } from 'sonner'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronAPI } from '@shared/ipc'
 import { SettingsPage } from './settings'
@@ -72,6 +73,7 @@ function renderSettings() {
       <I18nProvider>
         <ThemeProvider>
           <SettingsPage />
+          <Toaster />
         </ThemeProvider>
       </I18nProvider>
     </QueryClientProvider>,
@@ -192,6 +194,55 @@ describe('SettingsPage general tab', () => {
       employeesCanAccessDelivery: boolean
     }
     expect(call.employeesCanAccessDelivery).toBe(true)
+  })
+
+  it('blocks saving a whitespace-only store name', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Général' }))
+    const input = await screen.findByLabelText(/Nom du magasin/)
+    await user.clear(input)
+    await user.type(input, '   ')
+    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeDisabled()
+    expect(mockApi.settings.updateReceipt).not.toHaveBeenCalled()
+  })
+
+  it('keeps the toggle unchanged when a settings save fails', async () => {
+    vi.mocked(mockApi.settings.updateReceipt).mockRejectedValue(new Error('save failed'))
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Général' }))
+    const checkbox = await screen.findByRole('checkbox', { name: /Les employés peuvent voir la section Livraison/ })
+    await user.click(checkbox)
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    expect(checkbox).not.toBeChecked()
+  })
+
+  it('shows the duplicate category message on a duplicate name', async () => {
+    vi.mocked(mockApi.categories.create).mockRejectedValue(new Error('DUPLICATE_CATEGORY'))
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Produits & Catégories' }))
+    const input = await screen.findByPlaceholderText(/Ex\. : Oreillers/)
+    await user.type(input, 'Matelas')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    expect(await screen.findByText('Cette catégorie existe déjà.')).toBeInTheDocument()
+  })
+
+  it('disables user creation until the username and password are valid', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Utilisateurs' }))
+    await user.click(await screen.findByRole('button', { name: 'Ajouter un utilisateur' }))
+    const createButton = await screen.findByRole('button', { name: 'Créer le compte' })
+    expect(createButton).toBeDisabled()
+    await user.type(await screen.findByLabelText(/Nom d'utilisateur/), 'Sofiane')
+    await user.type(screen.getByLabelText(/Mot de passe/), '123')
+    expect(createButton).toBeDisabled()
+    await user.clear(screen.getByLabelText(/Mot de passe/))
+    await user.type(screen.getByLabelText(/Mot de passe/), 'emp123')
+    await waitFor(() => expect(createButton).toBeEnabled())
+    expect(mockApi.users.create).not.toHaveBeenCalled()
   })
 })
 
