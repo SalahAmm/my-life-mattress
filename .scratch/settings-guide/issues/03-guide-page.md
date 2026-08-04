@@ -4,7 +4,11 @@
 
 **Blocked by:** None (can be done in parallel with 01)
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: Guide page. Suite 238/238; typecheck clean.
 
 - [ ] Guide renders with sections + icons, scrollable
 - [ ] Works for both owner and employee sessions
