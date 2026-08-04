@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: reports data. Suite 209/209; typecheck clean.
 
 - [ ] reportSummary query correct for revenue/deposits/outstanding/count/breakdown
 - [ ] Cancelled sales excluded from totals; range boundaries inclusive-exclusive

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 — Reports data
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Tabs + custom range picker drive the summary query
 - [ ] Four KPI cards; top-products list; sales table for the range
