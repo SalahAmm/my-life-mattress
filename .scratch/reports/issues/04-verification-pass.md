@@ -4,7 +4,7 @@
 
 **Blocked by:** 01, 02, 03
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] All tickets' acceptance criteria hold on the running app
 - [ ] Full suite + typecheck + build green
