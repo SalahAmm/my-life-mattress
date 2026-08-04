@@ -4,7 +4,11 @@
 
 **Blocked by:** 01 — Reports data
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: reports screen. Suite 213/213; typecheck clean.
 
 - [ ] Tabs + custom range picker drive the summary query
 - [ ] Four KPI cards; top-products list; sales table for the range
