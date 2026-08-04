@@ -4,7 +4,7 @@
 
 **Blocked by:** None
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Guard: cannot deactivate self or the last active owner
 - [ ] Employee account created with hashed password can log in

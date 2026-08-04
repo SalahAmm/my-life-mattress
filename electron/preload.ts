@@ -68,6 +68,12 @@ const api: ElectronAPI = {
     summary: (range) => invoke('reports:summary', range),
     sales: (range) => invoke('reports:sales', range),
   },
+  users: {
+    list: () => invoke('users:list'),
+    create: (input) => invoke('users:create', input),
+    resetPassword: (input) => invoke('users:resetPassword', input),
+    setActive: (input) => invoke('users:setActive', input),
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

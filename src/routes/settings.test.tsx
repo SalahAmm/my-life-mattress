@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ElectronAPI } from '@shared/ipc'
@@ -14,7 +14,18 @@ const mockApi = {
   suppliers: { list: vi.fn().mockResolvedValue([]), create: vi.fn() },
   categories: { list: vi.fn().mockResolvedValue([]) },
   sales: { create: vi.fn(), get: vi.fn(), recent: vi.fn(), addPayment: vi.fn(), setStatus: vi.fn(), cancel: vi.fn() },
-  printing: { printReceipt: vi.fn() },
+  printing: { printReceipt: vi.fn(), printInBrowser: vi.fn(), printReport: vi.fn(), printReportInBrowser: vi.fn() },
+  reports: { summary: vi.fn(), sales: vi.fn() },
+  files: { saveCsv: vi.fn() },
+  users: {
+    list: vi.fn().mockResolvedValue([
+      { id: 1, username: 'Kamel', role: 'owner', active: 1, created_at: '' },
+      { id: 2, username: 'Salim', role: 'employee', active: 1, created_at: '' },
+    ]),
+    create: vi.fn().mockResolvedValue({ id: 3, username: 'Nadia', role: 'employee', active: 1, created_at: '' }),
+    resetPassword: vi.fn().mockResolvedValue(undefined),
+    setActive: vi.fn().mockResolvedValue(undefined),
+  },
   settings: {
     get: vi.fn().mockResolvedValue({
       id: 1,
@@ -104,15 +115,72 @@ describe('SettingsPage receipt appearance editor', () => {
     await waitFor(() => expect(mockApi.settings.uploadLogo).toHaveBeenCalled())
   })
 
-  it('renders all seven tabs; Reçu and Produits & Catégories enabled', async () => {
+  it('renders all seven tabs; Reçu, Produits & Catégories and Utilisateurs enabled', async () => {
     renderSettings()
     await screen.findByTitle('Aperçu du reçu')
     for (const tab of ['Général', 'Produits & Catégories', 'Paiement', 'Reçu', 'Imprimante', 'Utilisateurs', 'Données']) {
       const trigger = screen.getByRole('tab', { name: tab })
       expect(trigger).toBeInTheDocument()
-      if (tab !== 'Reçu' && tab !== 'Produits & Catégories') {
+      if (tab === 'Général' || tab === 'Paiement' || tab === 'Imprimante' || tab === 'Données') {
         expect(trigger).toHaveAttribute('data-disabled')
       }
     }
+  })
+})
+
+describe('SettingsPage users tab (ticket 01)', () => {
+  it('lists users with role badges', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Utilisateurs' }))
+    expect(await screen.findByText('Kamel')).toBeInTheDocument()
+    expect(screen.getByText('Salim')).toBeInTheDocument()
+    expect(screen.getByText('Propriétaire')).toBeInTheDocument()
+    expect(screen.getByText('Employé')).toBeInTheDocument()
+  })
+
+  it('creates an employee account', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Utilisateurs' }))
+    await user.click(await screen.findByRole('button', { name: /Ajouter un utilisateur/ }))
+    await user.type(screen.getByLabelText(/Nom d'utilisateur/), 'Nadia')
+    await user.type(screen.getByLabelText(/Mot de passe/), 'nadia123')
+    await user.click(screen.getByRole('button', { name: 'Créer le compte' }))
+    await waitFor(() => expect(mockApi.users.create).toHaveBeenCalled())
+    const input = vi.mocked(mockApi.users.create).mock.calls.at(-1)![0] as { username: string; password: string }
+    expect(input).toEqual({ username: 'Nadia', password: 'nadia123' })
+  })
+
+  it('resets an employee password', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Utilisateurs' }))
+    const salimRow = await screen.findByRole('row', { name: /Salim/ })
+    await user.click(within(salimRow).getByRole('button', { name: /Réinitialiser/ }))
+    await user.type(screen.getByLabelText(/Nouveau mot de passe/), 'salim789')
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.users.resetPassword).toHaveBeenCalled())
+    const input = vi.mocked(mockApi.users.resetPassword).mock.calls.at(-1)![0] as { id: number; password: string }
+    expect(input).toEqual({ id: 2, password: 'salim789' })
+  })
+
+  it('deactivates an employee', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Utilisateurs' }))
+    const salimRow = await screen.findByRole('row', { name: /Salim/ })
+    await user.click(within(salimRow).getByRole('button', { name: /Désactiver/ }))
+    await waitFor(() => expect(mockApi.users.setActive).toHaveBeenCalled())
+    expect(vi.mocked(mockApi.users.setActive).mock.calls.at(-1)![0]).toEqual({ id: 2, active: false })
+  })
+
+  it('hides the deactivate action for the owner account', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Utilisateurs' }))
+    const kamelRow = await screen.findByRole('row', { name: /Kamel/ })
+    expect(within(kamelRow).queryByRole('button', { name: /Désactiver/ })).not.toBeInTheDocument()
+    expect(within(kamelRow).queryByRole('button', { name: /Activer/ })).not.toBeInTheDocument()
   })
 })

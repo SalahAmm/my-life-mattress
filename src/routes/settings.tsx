@@ -1,17 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, ImagePlus, Loader2, Plus, Trash2 } from 'lucide-react'
+import { Check, ImagePlus, KeyRound, Loader2, Plus, Trash2, UserPlus, UserX } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/ipc-client'
 import { logoUrlFor, saleReceiptHtml, sampleSaleForPreview } from '@/lib/receipt-preview'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { PageHeader } from '@/components/management/page-header'
+import type { PublicUser } from '@shared/ipc'
 
 export function SettingsPage() {
   const { t } = useTranslation()
@@ -22,7 +27,7 @@ export function SettingsPage() {
       <Tabs defaultValue="receipt" className="flex min-h-0 flex-1 flex-col">
         <TabsList className="w-fit">
           {(['general', 'categories', 'payment', 'receipt', 'printer', 'users', 'data'] as const).map((tab) => (
-            <TabsTrigger key={tab} value={tab} disabled={tab !== 'receipt' && tab !== 'categories'}>
+            <TabsTrigger key={tab} value={tab} disabled={tab === 'general' || tab === 'payment' || tab === 'printer' || tab === 'data'}>
               {t(`settings.tab${tab.charAt(0).toUpperCase()}${tab.slice(1)}`)}
             </TabsTrigger>
           ))}
@@ -33,7 +38,10 @@ export function SettingsPage() {
         <TabsContent value="categories" className="min-h-0 flex-1">
           <DimensionPresetsTab />
         </TabsContent>
-        {(['general', 'payment', 'printer', 'users', 'data'] as const).map((tab) => (
+        <TabsContent value="users" className="min-h-0 flex-1">
+          <UsersTab />
+        </TabsContent>
+        {(['general', 'payment', 'printer', 'data'] as const).map((tab) => (
           <TabsContent key={tab} value={tab}>
             <Card className="p-6 text-center text-muted-foreground">{t('settings.comingSoon')}</Card>
           </TabsContent>
@@ -273,6 +281,205 @@ function DimensionPresetsTab() {
           </Button>
         </div>
       </CardContent>
+    </Card>
+  )
+}
+
+function UsersTab() {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => api.users.list(),
+  })
+
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ['users'] })
+  }
+
+  const createMutation = useMutation({
+    mutationFn: (input: { username: string; password: string }) => api.users.create(input),
+    onSuccess: () => {
+      invalidate()
+      setCreateOpen(false)
+      toast.success(t('settings.userCreated'))
+    },
+    onError: (error: Error) => toast.error(error.message),
+  })
+
+  const resetMutation = useMutation({
+    mutationFn: (input: { id: number; password: string }) => api.users.resetPassword(input),
+    onSuccess: () => {
+      invalidate()
+      setResetOpen(false)
+      toast.success(t('settings.passwordReset'))
+    },
+    onError: (error: Error) => toast.error(error.message),
+  })
+
+  const activeMutation = useMutation({
+    mutationFn: (input: { id: number; active: boolean }) => api.users.setActive(input),
+    onSuccess: () => {
+      invalidate()
+      toast.success(t('settings.userActivated'))
+    },
+    onError: (error: Error) => toast.error(error.message),
+  })
+
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createUsername, setCreateUsername] = useState('')
+  const [createPassword, setCreatePassword] = useState('')
+  const [resetTarget, setResetTarget] = useState<PublicUser | null>(null)
+  const setResetOpen = (open: boolean) => {
+    if (!open) setResetTarget(null)
+  }
+  const [resetPassword, setResetPassword] = useState('')
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <CardTitle>{t('settings.usersTitle')}</CardTitle>
+            <CardDescription>{t('settings.usersHelp')}</CardDescription>
+          </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <UserPlus />
+            {t('settings.addUser')}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('settings.username')}</TableHead>
+                <TableHead>{t('settings.role')}</TableHead>
+                <TableHead className="text-end">{t('settings.actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium" dir="auto">
+                    {user.username}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.role === 'owner' ? 'default' : 'outline'} className={user.active ? '' : 'opacity-50'}>
+                      {t(`role.${user.role}`)}
+                    </Badge>
+                    {!user.active && <span className="ms-2 text-xs text-muted-foreground">{t('settings.inactive')}</span>}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7"
+                        disabled={!user.active}
+                        onClick={() => setResetTarget(user)}
+                      >
+                        <KeyRound />
+                        {t('settings.resetPassword')}
+                      </Button>
+                      {user.role !== 'owner' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-destructive"
+                          disabled={!user.active}
+                          onClick={() => activeMutation.mutate({ id: user.id, active: false })}
+                        >
+                          <UserX />
+                          {t('settings.deactivate')}
+                        </Button>
+                      )}
+                      {user.role !== 'owner' && !user.active && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7"
+                          onClick={() => activeMutation.mutate({ id: user.id, active: true })}
+                        >
+                          <Check />
+                          {t('settings.activate')}
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('settings.addUser')}</DialogTitle>
+            <DialogDescription>{t('settings.addUserHelp')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="user-username">{t('settings.username')}</Label>
+              <Input
+                id="user-username"
+                dir="auto"
+                value={createUsername}
+                onChange={(e) => setCreateUsername(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-password">{t('settings.password')}</Label>
+              <Input
+                id="user-password"
+                dir="ltr"
+                type="password"
+                value={createPassword}
+                onChange={(e) => setCreatePassword(e.target.value)}
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={createMutation.isPending || createUsername.trim().length < 2 || createPassword.length < 4}
+              onClick={() => createMutation.mutate({ username: createUsername.trim(), password: createPassword })}
+            >
+              {createMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+              {t('settings.createAccount')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={resetTarget !== null} onOpenChange={() => setResetTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('settings.resetPasswordFor', { name: resetTarget?.username ?? '' })}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="reset-password">{t('settings.newPassword')}</Label>
+              <Input
+                id="reset-password"
+                dir="ltr"
+                type="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+              />
+            </div>
+            <Button
+              className="w-full"
+              disabled={resetMutation.isPending || resetPassword.length < 4}
+              onClick={() => {
+                if (resetTarget) resetMutation.mutate({ id: resetTarget.id, password: resetPassword })
+              }}
+            >
+              {resetMutation.isPending && <Loader2 className="size-4 animate-spin" />}
+              {t('common.save')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

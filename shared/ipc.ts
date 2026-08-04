@@ -13,7 +13,10 @@ import type {
   StockMovement,
   Supplier,
   TopSeller,
+  UserRow,
 } from './types'
+
+export type PublicUser = Omit<UserRow, 'password_hash' | 'recovery_code_hash'>
 
 export interface AuthStatus {
   needsSetup: boolean
@@ -134,6 +137,12 @@ export interface ElectronAPI {
   reports: {
     summary(range: ReportRange): Promise<ReportSummary>
     sales(range: ReportRange): Promise<SaleWithDetails[]>
+  }
+  users: {
+    list(): Promise<PublicUser[]>
+    create(input: { username: string; password: string }): Promise<PublicUser>
+    resetPassword(input: { id: number; password: string }): Promise<void>
+    setActive(input: { id: number; active: boolean }): Promise<void>
   }
 }
 

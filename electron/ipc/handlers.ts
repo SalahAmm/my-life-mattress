@@ -21,6 +21,15 @@ import {
   listSales,
   setSaleStatus,
 } from '../db/queries/sales'
+import {
+  assertCanDeactivateUser,
+  createUser,
+  findUserById,
+  listUsers,
+  setUserActive,
+  updateUserPassword,
+} from '../db/queries/users'
+import { hashPassword } from '../auth/password'
 import { getReceiptSettings, updateReceiptSettings } from '../db/queries/receipt-settings'
 import { reportSummary } from '../db/queries/reports'
 import { printInBrowser, printReceipt, printReport, printReportInBrowser, receiptHtmlForSale } from '../printing'
@@ -492,5 +501,55 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       )
       .all(parsed.data.from, parsed.data.to) as { id: number }[]
     return rows.map((r) => getSale(db, r.id))
+  }))
+
+  ipcMain.handle('users:list', wrap(async () => {
+    requireOwner(auth)
+    return listUsers(db)
+  }))
+
+  ipcMain.handle('users:create', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z
+      .object({
+        username: z.string().trim().min(2).max(50),
+        password: z.string().min(4).max(200),
+      })
+      .safeParse(payload ?? {})
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    const passwordHash = await hashPassword(parsed.data.password)
+    const newId = createUser(db, { username: parsed.data.username, passwordHash, role: 'employee' })
+    return findUserById(db, newId)!
+  }))
+
+  ipcMain.handle('users:resetPassword', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z
+      .object({ id: z.number().int().positive(), password: z.string().min(4).max(200) })
+      .safeParse(payload ?? {})
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    const passwordHash = await hashPassword(parsed.data.password)
+    updateUserPassword(db, parsed.data.id, passwordHash)
+  }))
+
+  ipcMain.handle('users:setActive', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z
+      .object({ id: z.number().int().positive(), active: z.boolean() })
+      .safeParse(payload ?? {})
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    if (!parsed.data.active) {
+      const outcome = assertCanDeactivateUser(db, parsed.data.id, auth.getSession()!.userId)
+      if (!outcome.ok) {
+        throw new AppError('VALIDATION_ERROR', `CANNOT_DEACTIVATE:${outcome.reason}`)
+      }
+    }
+    setUserActive(db, parsed.data.id, parsed.data.active)
   }))
 }
