@@ -4,7 +4,11 @@
 
 **Blocked by:** None (can be done in parallel with 01)
 
-**Status:** claimed
+**Status:** resolved
+
+## Answer
+
+Committed feat: Données tab. Suite 236/236; typecheck clean.
 
 - [ ] Backup writes a full copy to the chosen location
 - [ ] Restore validates the picked file (SQLite header), backs up the current DB, replaces it, flags restart

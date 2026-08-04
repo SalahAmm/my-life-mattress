@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can be done in parallel with 01)
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] Guide renders with sections + icons, scrollable
 - [ ] Works for both owner and employee sessions
