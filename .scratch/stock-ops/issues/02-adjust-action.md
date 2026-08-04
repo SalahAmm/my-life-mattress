@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Resolved: stock:adjust IPC (owner-only, reason required) + dialog. Suite 206/206.
 
 - [ ] stock:adjust IPC (owner-only) with validation (reason required)
 - [ ] Row action + dialog; movement recorded with reason adjustment

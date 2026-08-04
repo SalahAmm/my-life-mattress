@@ -4,7 +4,11 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** resolved
+
+## Answer
+
+Resolved: stock:movements IPC + history drawer per variant. Suite 206/206.
 
 - [ ] stock:movements IPC (owner-only) per stock item
 - [ ] Drawer UI per row showing the full trail with dates and actors
