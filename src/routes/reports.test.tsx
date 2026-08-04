@@ -117,4 +117,42 @@ describe('ReportsPage (ticket 02)', () => {
     expect(from.getMinutes()).toBe(0)
     expect(to.getTime() - from.getTime()).toBe(86400000)
   })
+
+  it('lists the products of each sale in the sales table', async () => {
+    vi.mocked(mockApi.reports.sales).mockResolvedValue([
+      {
+        id: 7,
+        customer_id: 1,
+        customer_name: 'Ahmed Benali',
+        customer_phone: null,
+        created_by: 1,
+        created_by_username: 'Kamel',
+        status: 'ordered',
+        wilaya: 'Alger',
+        delivery_address: null,
+        free_delivery: false,
+        created_at: '2026-08-03T10:00:00.000Z',
+        items: [
+          {
+            id: 1,
+            sale_id: 7,
+            product_variant_id: 10,
+            quantity: 2,
+            unit_price_at_sale: 30000,
+            custom_description: null,
+            product_name: 'Oreiller Confort',
+            dimension: '40x60',
+            variant_name: null,
+          },
+        ],
+        payments: [],
+        total: 60000,
+        paid: 0,
+        remaining: 60000,
+      },
+    ])
+    renderReports()
+    expect(await screen.findByText('Oreiller Confort 40x60 ×2')).toBeInTheDocument()
+    expect(screen.getByText('Ahmed Benali')).toBeInTheDocument()
+  })
 })

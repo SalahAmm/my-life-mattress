@@ -2,6 +2,7 @@ import type { ReceiptSettings, SaleWithDetails } from '../types'
 import type { ReportRange, ReportSummary } from '../ipc'
 import type { ReceiptFontUrls } from './receipt'
 import { formatDzd } from '../money'
+import { saleItemsLabel } from '../variants'
 
 function escapeHtml(value: string): string {
   return value
@@ -50,6 +51,7 @@ export function renderReportHtml(input: ReportTemplateInput): string {
       <tr>
         <td dir="ltr">${String(sale.id).padStart(4, '0')}</td>
         <td dir="auto">${escapeHtml(sale.customer_name ?? '')}</td>
+        <td dir="auto">${escapeHtml(saleItemsLabel(sale.items))}</td>
         <td dir="auto">${escapeHtml(sale.wilaya ?? '—')}</td>
         <td class="right">${formatDzd(sale.total)}</td>
         <td class="right">${formatDzd(sale.paid)}</td>
@@ -109,7 +111,7 @@ export function renderReportHtml(input: ReportTemplateInput): string {
   <h2>Ventes de la période</h2>
   <table>
     <thead>
-      <tr><th>N°</th><th>Client</th><th>Wilaya</th><th class="right">Total</th><th class="right">Payé</th><th class="right">Solde dû</th></tr>
+      <tr><th>N°</th><th>Client</th><th>Produits</th><th>Wilaya</th><th class="right">Total</th><th class="right">Payé</th><th class="right">Solde dû</th></tr>
     </thead>
     <tbody>${saleRows}</tbody>
   </table>

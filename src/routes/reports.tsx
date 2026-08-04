@@ -5,6 +5,7 @@ import { Banknote, Download, HandCoins, Printer, ReceiptText, TrendingUp } from 
 import { toast } from 'sonner'
 import { formatDzd } from '@shared/money'
 import { toCsv } from '@shared/csv'
+import { saleItemsLabel } from '@shared/variants'
 import { renderReportHtml } from '@shared/printing/report'
 import type { Session } from '@shared/types'
 import type { ReportRange } from '@shared/ipc'
@@ -92,12 +93,13 @@ export function ReportsPage({ session }: { session: Session }) {
       sales.map((sale) => ({
         'N°': String(sale.id).padStart(4, '0'),
         Client: sale.customer_name ?? '',
+        Produits: saleItemsLabel(sale.items),
         Wilaya: sale.wilaya ?? '',
         Total: sale.total,
         Payé: sale.paid,
         'Solde dû': sale.remaining,
       })),
-      ['N°', 'Client', 'Wilaya', 'Total', 'Payé', 'Solde dû'],
+      ['N°', 'Client', 'Produits', 'Wilaya', 'Total', 'Payé', 'Solde dû'],
     )
   }, [sales])
 
@@ -197,6 +199,7 @@ export function ReportsPage({ session }: { session: Session }) {
                       <TableRow>
                         <TableHead>{t('reports.orderNo')}</TableHead>
                         <TableHead>{t('reports.customer')}</TableHead>
+                        <TableHead>{t('reports.products')}</TableHead>
                         <TableHead>{t('reports.wilaya')}</TableHead>
                         <TableHead className="text-end">{t('reports.total')}</TableHead>
                         <TableHead className="text-end">{t('reports.paid')}</TableHead>
@@ -208,6 +211,11 @@ export function ReportsPage({ session }: { session: Session }) {
                         <TableRow key={sale.id}>
                           <TableCell dir="ltr">{String(sale.id).padStart(4, '0')}</TableCell>
                           <TableCell dir="auto">{sale.customer_name}</TableCell>
+                          <TableCell className="max-w-[240px]">
+                            <span className="block truncate" dir="auto" title={saleItemsLabel(sale.items)}>
+                              {saleItemsLabel(sale.items)}
+                            </span>
+                          </TableCell>
                           <TableCell dir="auto">{sale.wilaya ?? '—'}</TableCell>
                           <TableCell className="text-end" dir="ltr">{formatDzd(sale.total)}</TableCell>
                           <TableCell className="text-end text-success" dir="ltr">{formatDzd(sale.paid)}</TableCell>
@@ -246,6 +254,7 @@ export function ReportsPage({ session }: { session: Session }) {
                 <TableRow>
                   <TableHead>{t('reports.orderNo')}</TableHead>
                   <TableHead>{t('reports.customer')}</TableHead>
+                  <TableHead>{t('reports.products')}</TableHead>
                   <TableHead>{t('reports.wilaya')}</TableHead>
                   <TableHead className="text-end">{t('reports.total')}</TableHead>
                   <TableHead className="text-end">{t('reports.paid')}</TableHead>
@@ -257,6 +266,11 @@ export function ReportsPage({ session }: { session: Session }) {
                   <TableRow key={sale.id}>
                     <TableCell dir="ltr">{String(sale.id).padStart(4, '0')}</TableCell>
                     <TableCell dir="auto">{sale.customer_name}</TableCell>
+                    <TableCell className="max-w-[240px]">
+                      <span className="block truncate" dir="auto" title={saleItemsLabel(sale.items)}>
+                        {saleItemsLabel(sale.items)}
+                      </span>
+                    </TableCell>
                     <TableCell dir="auto">{sale.wilaya ?? '—'}</TableCell>
                     <TableCell className="text-end" dir="ltr">{formatDzd(sale.total)}</TableCell>
                     <TableCell className="text-end" dir="ltr">{formatDzd(sale.paid)}</TableCell>

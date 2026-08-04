@@ -38,7 +38,19 @@ const sale: SaleWithDetails = {
   delivery_address: null,
   free_delivery: false,
   created_at: '2026-08-03T10:00:00.000Z',
-  items: [],
+  items: [
+    {
+      id: 1,
+      sale_id: 1,
+      product_variant_id: 10,
+      quantity: 2,
+      unit_price_at_sale: 30000,
+      custom_description: null,
+      product_name: 'Matelas Elite',
+      dimension: '160x190',
+      variant_name: null,
+    },
+  ],
   payments: [],
   total: 60000,
   paid: 0,
@@ -66,6 +78,7 @@ describe('renderReportHtml (ticket 03)', () => {
     expect(html).toContain('46')
     expect(html).toContain('Matelas Elite 160x190')
     expect(html).toContain('Ahmed Benali')
+    expect(html).toContain('Matelas Elite 160x190 ×2')
     expect(html).toContain('@page')
     expect(html).toContain('size: A4')
   })
