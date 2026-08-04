@@ -6,7 +6,9 @@ import { createUser } from './users'
 import {
   addPayment,
   cancelSale,
+  clearDelivered,
   createSale,
+  deleteSale,
   getSale,
   listSales,
   setSaleStatus,
@@ -243,5 +245,45 @@ describe('sales queries', () => {
     expect(all).toHaveLength(3)
     expect(all.find((s) => s.id === first)?.items).toHaveLength(1)
     expect(all.find((s) => s.id === first)?.remaining).toBe(45000)
+  })
+
+  describe('deleteSale / clearDelivered (delivery history)', () => {
+    it('refuses to delete an ordered sale', () => {
+      const { db, owner, product } = seed(database())
+      const variant = product.variants[0]
+      const item = [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }]
+      const saleId = createSale(db, saleArgs(owner, { items: item }))
+      expect(() => deleteSale(db, saleId)).toThrow()
+    })
+
+    it('deletes a delivered sale with its items and payments, without touching stock', () => {
+      const { db, owner, product } = seed(database())
+      const variant = product.variants[0]
+      const item = [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }]
+      const saleId = createSale(db, saleArgs(owner, { items: item, payment: { amount: 10000, type: 'deposit', enteredAsPercentage: 30 } }))
+      setSaleStatus(db, saleId, 'delivered')
+      const stockBefore = db.prepare('SELECT quantity_on_hand FROM stock_items WHERE product_variant_id = ?').get(variant.id) as { quantity_on_hand: number }
+      deleteSale(db, saleId)
+      expect(() => getSale(db, saleId)).toThrow()
+      const count = db.prepare('SELECT COUNT(*) AS n FROM sale_items WHERE sale_id = ?').get(saleId) as { n: number }
+      expect(count.n).toBe(0)
+      const payCount = db.prepare('SELECT COUNT(*) AS n FROM payments WHERE sale_id = ?').get(saleId) as { n: number }
+      expect(payCount.n).toBe(0)
+      const stockAfter = db.prepare('SELECT quantity_on_hand FROM stock_items WHERE product_variant_id = ?').get(variant.id) as { quantity_on_hand: number }
+      expect(stockAfter.quantity_on_hand).toBe(stockBefore.quantity_on_hand)
+    })
+
+    it('clears only delivered sales', () => {
+      const { db, owner, product } = seed(database())
+      const variant = product.variants[0]
+      const item = [{ productVariantId: variant.id, quantity: 1, unitPriceAtSale: 0, customDescription: null }]
+      createSale(db, saleArgs(owner, { items: item }))
+      const delivered = createSale(db, saleArgs(owner, { items: item }))
+      setSaleStatus(db, delivered, 'delivered')
+      const cleared = clearDelivered(db)
+      expect(cleared).toBe(1)
+      const remaining = db.prepare('SELECT status, COUNT(*) AS n FROM sales GROUP BY status').all() as { status: string; n: number }[]
+      expect(remaining).toEqual([{ status: 'ordered', n: 1 }])
+    })
   })
 })

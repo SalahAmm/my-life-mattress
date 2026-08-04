@@ -119,6 +119,8 @@ export interface ElectronAPI {
     }): Promise<void>
     setStatus(input: { saleId: number; status: SaleStatus }): Promise<void>
     cancel(input: { saleId: number }): Promise<void>
+    delete(saleId: number): Promise<void>
+    clearDelivered(): Promise<number>
   }
   printing: {
     printReceipt(saleId: number): Promise<PrintResult>

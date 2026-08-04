@@ -15,7 +15,9 @@ import { adjustStock, listMovementsForVariant, restock } from '../db/queries/sto
 import {
   addPayment,
   cancelSale,
+  clearDelivered,
   createSale,
+  deleteSale,
   getSale,
   listRecentSales,
   listSales,
@@ -374,6 +376,17 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     const saleId = z.number().int().positive().parse(payload)
     const session = requireSession(auth)
     cancelSale(db, { saleId, createdBy: session.userId })
+  }))
+
+  ipcMain.handle('sales:delete', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const saleId = z.number().int().positive().parse(payload)
+    deleteSale(db, saleId)
+  }))
+
+  ipcMain.handle('sales:clearDelivered', wrap(async () => {
+    requireOwner(auth)
+    return clearDelivered(db)
   }))
 
   ipcMain.handle('printing:printReceipt', wrap(async ({ payload }) => {

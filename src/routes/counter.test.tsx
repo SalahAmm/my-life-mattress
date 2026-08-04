@@ -72,6 +72,21 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear()
   window.electronAPI = mockApi
+  Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 })
+  const mql = window.matchMedia
+  window.matchMedia = ((query: string) => {
+    const matches = query.includes('max-width') ? 1280 < 1150 : false
+    return {
+      matches,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }
+  }) as typeof mql
 })
 
 const saleFixture: SaleWithDetails = {

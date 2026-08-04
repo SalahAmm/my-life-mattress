@@ -1,11 +1,13 @@
 import type { Database } from 'better-sqlite3'
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, shell } from 'electron'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
+import crypto from 'node:crypto'
 import type { ReceiptFontUrls } from '@shared/printing/receipt'
 import { renderReceiptHtml } from '@shared/printing/receipt'
 import { renderReportHtml } from '@shared/printing/report'
-import { appendPrintScript } from '@shared/printing/print-script'
 import { getReceiptSettings } from '../db/queries/receipt-settings'
 import { getSale } from '../db/queries/sales'
 import { reportSummary, type ReportRange } from '../db/queries/reports'
@@ -32,8 +34,20 @@ export function mainProcessFontUrls(): ReceiptFontUrls {
   }
 }
 
+function writeTempHtml(html: string, label: string): string {
+  const dir = path.join(os.tmpdir(), 'mlm-print')
+  fs.mkdirSync(dir, { recursive: true })
+  const file = path.join(dir, `${label}-${crypto.randomUUID()}.html`)
+  fs.writeFileSync(file, html, 'utf8')
+  setTimeout(() => {
+    fs.rmSync(file, { force: true })
+  }, 10 * 60 * 1000).unref()
+  return file
+}
+
 export function printHtml(html: string, title: string): Promise<{ success: boolean; reason?: string }> {
   return new Promise((resolve) => {
+    const tempFile = writeTempHtml(html, 'print')
     const win = new BrowserWindow({
       show: false,
       webPreferences: { sandbox: true, contextIsolation: true },
@@ -49,7 +63,7 @@ export function printHtml(html: string, title: string): Promise<{ success: boole
       win.destroy()
       resolve({ success: false, reason: desc })
     })
-    void win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    void win.loadFile(tempFile)
   })
 }
 
@@ -114,23 +128,8 @@ function logoDataUri(filePath: string): string {
   return `data:${mime};base64,${base64}`
 }
 
-export function printInBrowser(html: string, title: string): Promise<{ success: boolean; reason?: string }> {
-  return new Promise((resolve) => {
-    const win = new BrowserWindow({
-      show: true,
-      width: 420,
-      height: 700,
-      autoHideMenuBar: true,
-      webPreferences: { sandbox: true, contextIsolation: true },
-    })
-    win.setTitle(title)
-    win.webContents.on('did-fail-load', (_event, _code, desc) => {
-      win.destroy()
-      resolve({ success: false, reason: desc })
-    })
-    win.on('closed', () => {
-      resolve({ success: true })
-    })
-    void win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(appendPrintScript(html))}`)
-  })
+export async function printInBrowser(html: string, _title: string): Promise<{ success: boolean; reason?: string }> {
+  const tempFile = writeTempHtml(html, 'browser')
+  await shell.openExternal(pathToFileURL(tempFile).toString())
+  return { success: true }
 }

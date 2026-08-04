@@ -389,7 +389,7 @@ export function CounterPage({ session }: { session: Session }) {
           )}
         </div>
 
-        {isNarrow ? null : <div className="flex w-[360px] shrink-0 flex-col gap-3">{checkoutPanel}</div>}
+        {isNarrow ? null : <div className={`flex shrink-0 flex-col gap-3 ${cartPanelWidth(cart.length)}`}>{checkoutPanel}</div>}
       </div>
 
       {isNarrow && (
@@ -604,6 +604,13 @@ export function CounterPage({ session }: { session: Session }) {
       )}
     </div>
   )
+}
+
+function cartPanelWidth(lineCount: number): string {
+  if (lineCount <= 0) return 'w-[300px]'
+  if (lineCount <= 3) return 'w-[340px]'
+  if (lineCount <= 6) return 'w-[380px]'
+  return 'w-[420px]'
 }
 
 function availabilityLabel(
@@ -898,23 +905,23 @@ function CheckoutPanel({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-6 shrink-0"
+                    className="size-7 shrink-0"
                     onClick={() => onRemoveLine(line.key)}
                     aria-label={t('common.cancel')}
                   >
-                    <Trash2 className="size-3.5" />
+                    <Trash2 className="size-4" />
                   </Button>
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <Button variant="outline" size="icon" className="size-6" onClick={() => onSetQuantity(line.key, -1)}>
-                      <Minus className="size-3" />
+                    <Button variant="outline" size="icon" className="size-7" onClick={() => onSetQuantity(line.key, -1)}>
+                      <Minus className="size-3.5" />
                     </Button>
-                    <span className="w-6 text-center text-sm" dir="ltr">
+                    <span className="w-7 text-center text-sm" dir="ltr">
                       {line.quantity}
                     </span>
-                    <Button variant="outline" size="icon" className="size-6" onClick={() => onSetQuantity(line.key, 1)}>
-                      <Plus className="size-3" />
+                    <Button variant="outline" size="icon" className="size-7" onClick={() => onSetQuantity(line.key, 1)}>
+                      <Plus className="size-3.5" />
                     </Button>
                   </div>
                   <span className="text-sm font-semibold" dir="ltr">

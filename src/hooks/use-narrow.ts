@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-const NARROW_BREAKPOINT = 1024
+const NARROW_BREAKPOINT = 1150
 
 export function useIsNarrow() {
   const [isNarrow, setIsNarrow] = React.useState<boolean | undefined>(undefined)

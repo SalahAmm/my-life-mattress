@@ -89,7 +89,7 @@ function setWidth(width: number) {
   Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: width })
   const mql = window.matchMedia
   window.matchMedia = ((query: string) => {
-    const matches = query.includes('max-width') ? width < 1024 : false
+    const matches = query.includes('max-width') ? width < 1150 : false
     return {
       matches,
       media: query,

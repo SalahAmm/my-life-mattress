@@ -49,6 +49,8 @@ const api: ElectronAPI = {
     addPayment: (input) => invoke('sales:addPayment', input),
     setStatus: (input) => invoke('sales:setStatus', input),
     cancel: (input) => invoke('sales:cancel', input.saleId),
+    delete: (saleId) => invoke('sales:delete', saleId),
+    clearDelivered: () => invoke('sales:clearDelivered'),
   },
   printing: {
     printReceipt: (saleId) => invoke('printing:printReceipt', saleId),

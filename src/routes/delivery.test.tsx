@@ -90,6 +90,14 @@ const paidOrdered: SaleWithDetails = {
   remaining: 0,
 }
 
+const deliveredOld: SaleWithDetails = {
+  ...deliveredBlida,
+  id: 5,
+  customer_name: 'Ancienne Livraison',
+  wilaya: 'Sétif',
+  created_at: '2026-01-15T10:00:00.000Z',
+}
+
 const mockApi = {
   auth: { status: vi.fn(), setupOwner: vi.fn(), login: vi.fn(), logout: vi.fn(), recoverOwner: vi.fn() },
   products: {
@@ -107,10 +115,12 @@ const mockApi = {
     create: vi.fn(),
     get: vi.fn(),
     recent: vi.fn(),
-    list: vi.fn().mockResolvedValue([orderedAlger, orderedOran, deliveredBlida, paidOrdered]),
+    list: vi.fn().mockResolvedValue([orderedAlger, orderedOran, deliveredBlida, paidOrdered, deliveredOld]),
     addPayment: vi.fn().mockResolvedValue(undefined),
     setStatus: vi.fn().mockResolvedValue(undefined),
     cancel: vi.fn(),
+    delete: vi.fn().mockResolvedValue(undefined),
+    clearDelivered: vi.fn().mockResolvedValue(2),
   },
   printing: { printReceipt: vi.fn(), printInBrowser: vi.fn() },
   settings: {
@@ -209,5 +219,72 @@ describe('DeliveryPage redesign', () => {
     renderDelivery(employeeSession)
     await screen.findByText('Ahmed Benali')
     expect(screen.queryByText('À encaisser')).not.toBeInTheDocument()
+  })
+
+  it('has no "all" tab anymore', async () => {
+    renderDelivery(ownerSession)
+    await screen.findByText('Ahmed Benali')
+    expect(screen.queryByRole('tab', { name: /Toutes/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('DeliveryPage delivered history', () => {
+  async function openHistory(session: Session) {
+    renderDelivery(session)
+    const user = userEvent.setup()
+    await screen.findByText('Ahmed Benali')
+    await user.click(screen.getByRole('tab', { name: 'Livré' }))
+    return user
+  }
+
+  it('shows the history header with filters and the delivered order', async () => {
+    await openHistory(ownerSession)
+    expect(await screen.findByText('Historique des livraisons')).toBeInTheDocument()
+    expect(screen.getByText('Rachid Hamdi')).toBeInTheDocument()
+    for (const chip of ['Aujourd\'hui', 'Cette Semaine', 'Ce Mois', 'Toute la période']) {
+      expect(screen.getByRole('button', { name: chip })).toBeInTheDocument()
+    }
+  })
+
+  it('filters by period; old deliveries only appear on Toute la période', async () => {
+    const user = await openHistory(ownerSession)
+    expect(await screen.findByText('Rachid Hamdi')).toBeInTheDocument()
+    expect(screen.queryByText('Ancienne Livraison')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Toute la période' }))
+    expect(screen.getByText('Ancienne Livraison')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Cette Semaine' }))
+    expect(screen.queryByText('Ancienne Livraison')).not.toBeInTheDocument()
+  })
+
+  it('collapses the list while keeping the filters', async () => {
+    const user = await openHistory(ownerSession)
+    await screen.findByText('Rachid Hamdi')
+    await user.click(screen.getByRole('button', { name: /Historique des livraisons/ }))
+    expect(screen.queryByText('Rachid Hamdi')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Toute la période' })).toBeInTheDocument()
+  })
+
+  it('deletes a delivered order after confirmation', async () => {
+    const user = await openHistory(ownerSession)
+    await screen.findByText('Rachid Hamdi')
+    const card = screen.getByText('Rachid Hamdi').closest('[data-slot="card"]') as HTMLElement
+    await user.click(within(card).getByRole('button', { name: /Supprimer/ }))
+    await user.click(screen.getByRole('button', { name: 'Supprimer' }))
+    await waitFor(() => expect(mockApi.sales.delete).toHaveBeenCalledWith(3))
+  })
+
+  it('clears the whole history after confirmation', async () => {
+    const user = await openHistory(ownerSession)
+    await screen.findByText('Rachid Hamdi')
+    await user.click(screen.getByRole('button', { name: /Tout effacer/ }))
+    await user.click(screen.getByRole('button', { name: /Tout effacer/ }))
+    await waitFor(() => expect(mockApi.sales.clearDelivered).toHaveBeenCalled())
+  })
+
+  it('hides delete and clear actions for employees', async () => {
+    await openHistory(employeeSession)
+    await screen.findByText('Rachid Hamdi')
+    expect(screen.queryByRole('button', { name: /Supprimer/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Tout effacer/ })).not.toBeInTheDocument()
   })
 })

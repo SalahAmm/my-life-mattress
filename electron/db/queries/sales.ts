@@ -216,3 +216,29 @@ export function listSales(db: Database, input: { status?: SaleStatus }): SaleWit
     : (db.prepare('SELECT id FROM sales ORDER BY id DESC').all() as { id: number }[])
   return rows.map((r) => getSale(db, r.id))
 }
+
+export function deleteSale(db: Database, saleId: number): void {
+  const run = db.transaction(() => {
+    const sale = getSale(db, saleId)
+    if (sale.status !== 'delivered') {
+      throw new AppError('VALIDATION_ERROR', 'Only delivered sales can be deleted from history')
+    }
+    db.prepare('DELETE FROM payments WHERE sale_id = ?').run(saleId)
+    db.prepare('DELETE FROM sale_items WHERE sale_id = ?').run(saleId)
+    db.prepare('DELETE FROM sales WHERE id = ?').run(saleId)
+  })
+  run()
+}
+
+export function clearDelivered(db: Database): number {
+  const run = db.transaction(() => {
+    const rows = db.prepare("SELECT id FROM sales WHERE status = 'delivered'").all() as { id: number }[]
+    for (const row of rows) {
+      db.prepare('DELETE FROM payments WHERE sale_id = ?').run(row.id)
+      db.prepare('DELETE FROM sale_items WHERE sale_id = ?').run(row.id)
+      db.prepare('DELETE FROM sales WHERE id = ?').run(row.id)
+    }
+    return rows.length
+  })
+  return run()
+}
