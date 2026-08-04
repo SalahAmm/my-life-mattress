@@ -16,7 +16,7 @@ const mockApi = {
   sales: { create: vi.fn(), get: vi.fn(), recent: vi.fn(), addPayment: vi.fn(), setStatus: vi.fn(), cancel: vi.fn() },
   printing: { printReceipt: vi.fn(), printInBrowser: vi.fn(), printReport: vi.fn(), printReportInBrowser: vi.fn() },
   reports: { summary: vi.fn(), sales: vi.fn() },
-  files: { saveCsv: vi.fn() },
+  files: { saveCsv: vi.fn(), backupDatabase: vi.fn(), restoreDatabase: vi.fn() },
   users: {
     list: vi.fn().mockResolvedValue([
       { id: 1, username: 'Kamel', role: 'owner', active: 1, created_at: '' },
@@ -115,16 +115,37 @@ describe('SettingsPage receipt appearance editor', () => {
     await waitFor(() => expect(mockApi.settings.uploadLogo).toHaveBeenCalled())
   })
 
-  it('renders all seven tabs; Reçu, Produits & Catégories and Utilisateurs enabled', async () => {
+  it('renders all seven tabs; Reçu, Produits & Catégories, Utilisateurs and Données enabled', async () => {
     renderSettings()
     await screen.findByTitle('Aperçu du reçu')
     for (const tab of ['Général', 'Produits & Catégories', 'Paiement', 'Reçu', 'Imprimante', 'Utilisateurs', 'Données']) {
       const trigger = screen.getByRole('tab', { name: tab })
       expect(trigger).toBeInTheDocument()
-      if (tab === 'Général' || tab === 'Paiement' || tab === 'Imprimante' || tab === 'Données') {
+      if (tab === 'Général' || tab === 'Paiement' || tab === 'Imprimante') {
         expect(trigger).toHaveAttribute('data-disabled')
       }
     }
+  })
+})
+
+describe('SettingsPage data tab (ticket 02)', () => {
+  it('triggers a backup from the button', async () => {
+    vi.mocked(mockApi.files.backupDatabase).mockResolvedValue('C:/backups/store.db')
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Données' }))
+    await user.click(await screen.findByRole('button', { name: /Sauvegarder/ }))
+    await waitFor(() => expect(mockApi.files.backupDatabase).toHaveBeenCalled())
+  })
+
+  it('stages a restore and shows the restart notice', async () => {
+    vi.mocked(mockApi.files.restoreDatabase).mockResolvedValue({ requiresRestart: true })
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Données' }))
+    await user.click(await screen.findByRole('button', { name: /Restaurer/ }))
+    await waitFor(() => expect(mockApi.files.restoreDatabase).toHaveBeenCalled())
+    expect(await screen.findByText(/redémarrez l'application/i)).toBeInTheDocument()
   })
 })
 

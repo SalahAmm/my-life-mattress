@@ -128,6 +128,8 @@ export interface ElectronAPI {
   }
   files: {
     saveCsv(input: { defaultName: string; content: string }): Promise<string | null>
+    backupDatabase(): Promise<string | null>
+    restoreDatabase(): Promise<{ requiresRestart: boolean } | null>
   }
   settings: {
     get(): Promise<ReceiptSettings>

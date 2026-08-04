@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, ImagePlus, KeyRound, Loader2, Plus, Trash2, UserPlus, UserX } from 'lucide-react'
+import { Check, DatabaseBackup, ImagePlus, KeyRound, Loader2, Plus, RotateCcw, Trash2, UserPlus, UserX } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/lib/ipc-client'
 import { logoUrlFor, saleReceiptHtml, sampleSaleForPreview } from '@/lib/receipt-preview'
@@ -27,7 +27,7 @@ export function SettingsPage() {
       <Tabs defaultValue="receipt" className="flex min-h-0 flex-1 flex-col">
         <TabsList className="w-fit">
           {(['general', 'categories', 'payment', 'receipt', 'printer', 'users', 'data'] as const).map((tab) => (
-            <TabsTrigger key={tab} value={tab} disabled={tab === 'general' || tab === 'payment' || tab === 'printer' || tab === 'data'}>
+            <TabsTrigger key={tab} value={tab} disabled={tab === 'general' || tab === 'payment' || tab === 'printer'}>
               {t(`settings.tab${tab.charAt(0).toUpperCase()}${tab.slice(1)}`)}
             </TabsTrigger>
           ))}
@@ -41,7 +41,10 @@ export function SettingsPage() {
         <TabsContent value="users" className="min-h-0 flex-1">
           <UsersTab />
         </TabsContent>
-        {(['general', 'payment', 'printer', 'data'] as const).map((tab) => (
+        <TabsContent value="data" className="min-h-0 flex-1">
+          <DataTab />
+        </TabsContent>
+        {(['general', 'payment', 'printer'] as const).map((tab) => (
           <TabsContent key={tab} value={tab}>
             <Card className="p-6 text-center text-muted-foreground">{t('settings.comingSoon')}</Card>
           </TabsContent>
@@ -282,6 +285,68 @@ function DimensionPresetsTab() {
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function DataTab() {
+  const { t } = useTranslation()
+  const [restoring, setRestoring] = useState(false)
+  const [restored, setRestored] = useState(false)
+
+  const backup = async () => {
+    const path = await api.files.backupDatabase()
+    if (path) {
+      toast.success(t('settings.backupDone', { path }))
+    }
+  }
+
+  const restore = async () => {
+    setRestoring(true)
+    try {
+      const result = await api.files.restoreDatabase()
+      if (result) {
+        setRestored(true)
+      }
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.backupTitle')}</CardTitle>
+          <CardDescription>{t('settings.backupHelp')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => void backup()}>
+            <DatabaseBackup />
+            {t('settings.backupButton')}
+          </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('settings.restoreTitle')}</CardTitle>
+          <CardDescription>{t('settings.restoreHelp')}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {restored ? (
+            <p className="text-sm font-semibold text-success">{t('settings.restoreStaged')}</p>
+          ) : (
+            <>
+              <Button variant="destructive" disabled={restoring} onClick={() => void restore()}>
+                {restoring && <Loader2 className="size-4 animate-spin" />}
+                <RotateCcw />
+                {t('settings.restoreButton')}
+              </Button>
+              <p className="text-xs text-muted-foreground">{t('settings.restoreWarning')}</p>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 

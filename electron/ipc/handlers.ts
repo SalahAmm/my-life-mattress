@@ -30,6 +30,7 @@ import {
   updateUserPassword,
 } from '../db/queries/users'
 import { hashPassword } from '../auth/password'
+import { backupDatabaseTo, stageRestoreFile } from '../db/backup'
 import { getReceiptSettings, updateReceiptSettings } from '../db/queries/receipt-settings'
 import { reportSummary } from '../db/queries/reports'
 import { printInBrowser, printReceipt, printReport, printReportInBrowser, receiptHtmlForSale } from '../printing'
@@ -421,6 +422,38 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     }
     fs.writeFileSync(result.filePath, parsed.data.content, 'utf8')
     return result.filePath
+  }))
+
+  ipcMain.handle('files:backupDatabase', wrap(async () => {
+    requireOwner(auth)
+    const date = new Date().toISOString().slice(0, 10)
+    const result = await dialog.showSaveDialog({
+      title: 'Sauvegarder la base de données',
+      defaultPath: `backup-my-life-mattress-${date}.db`,
+      filters: [{ name: 'Base de données SQLite', extensions: ['db'] }],
+    })
+    if (result.canceled || !result.filePath) {
+      return null
+    }
+    await backupDatabaseTo(db, result.filePath)
+    return result.filePath
+  }))
+
+  ipcMain.handle('files:restoreDatabase', wrap(async () => {
+    requireOwner(auth)
+    const result = await dialog.showOpenDialog({
+      title: 'Restaurer une sauvegarde',
+      filters: [{ name: 'Base de données SQLite', extensions: ['db'] }],
+      properties: ['openFile'],
+    })
+    if (result.canceled || result.filePaths.length === 0) {
+      return null
+    }
+    const picked = result.filePaths[0]
+    if (!stageRestoreFile(picked, path.join(app.getPath('userData'), 'store.db'))) {
+      throw new AppError('VALIDATION_ERROR', 'INVALID_BACKUP_FILE')
+    }
+    return { requiresRestart: true }
   }))
 
   ipcMain.handle('settings:get', wrap(async () => {

@@ -58,6 +58,8 @@ const api: ElectronAPI = {
   },
   files: {
     saveCsv: (input) => invoke('files:saveCsv', input),
+    backupDatabase: () => invoke('files:backupDatabase'),
+    restoreDatabase: () => invoke('files:restoreDatabase'),
   },
   settings: {
     get: () => invoke('settings:get'),

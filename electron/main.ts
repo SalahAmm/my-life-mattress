@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { app, BrowserWindow, dialog, net, protocol } from 'electron'
 import { createDatabase } from './db/connection'
+import { applyPendingRestore } from './db/backup'
 import { AuthService } from './auth/service'
 import { registerIpcHandlers } from './ipc/handlers'
 import { initLogging, logError } from './log'
@@ -45,7 +46,9 @@ function createWindow(): void {
 app.whenReady().then(() => {
   try {
     initLogging(path.join(app.getPath('userData'), 'logs', 'app.log'))
-    const db = createDatabase(path.join(app.getPath('userData'), 'store.db'))
+    const storeDbPath = path.join(app.getPath('userData'), 'store.db')
+    applyPendingRestore(storeDbPath)
+    const db = createDatabase(storeDbPath)
     const auth = new AuthService(db)
     registerIpcHandlers(db, auth)
     createWindow()

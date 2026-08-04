@@ -234,7 +234,16 @@
     "actions": "Actions",
     "userCreated": "Utilisateur créé",
     "passwordReset": "Mot de passe réinitialisé",
-    "userActivated": "Statut du compte mis à jour"
+    "userActivated": "Statut du compte mis à jour",
+    "backupTitle": "Sauvegarde",
+    "backupHelp": "Enregistrez une copie complète de la base de données (produits, ventes, clients, réglages).",
+    "backupButton": "Sauvegarder la base de données",
+    "backupDone": "Sauvegarde enregistrée : {{path}}",
+    "restoreTitle": "Restauration",
+    "restoreHelp": "Revenez à une sauvegarde antérieure en cas de problème.",
+    "restoreButton": "Restaurer une sauvegarde…",
+    "restoreWarning": "Les données actuelles seront remplacées après le redémarrage de l'application.",
+    "restoreStaged": "Restauration prête — redémarrez l'application pour l'appliquer."
   },
   "stock": {
     "title": "Stock",
