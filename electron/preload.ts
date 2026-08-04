@@ -59,6 +59,10 @@ const api: ElectronAPI = {
     updateReceipt: (input) => invoke('settings:updateReceipt', input),
     uploadLogo: () => invoke('settings:uploadLogo'),
   },
+  reports: {
+    summary: (range) => invoke('reports:summary', range),
+    sales: (range) => invoke('reports:sales', range),
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', api)

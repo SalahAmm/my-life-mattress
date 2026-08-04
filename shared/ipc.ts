@@ -39,6 +39,25 @@ export interface PrintResult {
   reason?: string
 }
 
+export interface ReportRange {
+  from: string
+  to: string
+}
+
+export interface ProductBreakdown {
+  label: string
+  units: number
+  revenue: number
+}
+
+export interface ReportSummary {
+  revenue: number
+  depositsCollected: number
+  outstanding: number
+  salesCount: number
+  perProduct: ProductBreakdown[]
+}
+
 export interface UpdateProductInput {
   id: number
   name: string
@@ -106,6 +125,10 @@ export interface ElectronAPI {
     get(): Promise<ReceiptSettings>
     updateReceipt(input: UpdateReceiptSettingsInput): Promise<void>
     uploadLogo(): Promise<string | null>
+  }
+  reports: {
+    summary(range: ReportRange): Promise<ReportSummary>
+    sales(range: ReportRange): Promise<SaleWithDetails[]>
   }
 }
 

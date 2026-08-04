@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** claimed
 
 - [ ] reportSummary query correct for revenue/deposits/outstanding/count/breakdown
 - [ ] Cancelled sales excluded from totals; range boundaries inclusive-exclusive

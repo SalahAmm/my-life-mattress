@@ -22,6 +22,7 @@ import {
   setSaleStatus,
 } from '../db/queries/sales'
 import { getReceiptSettings, updateReceiptSettings } from '../db/queries/receipt-settings'
+import { reportSummary } from '../db/queries/reports'
 import { printInBrowser, printReceipt, receiptHtmlForSale } from '../printing'
 
 type Handler<TInput, TOutput> = (args: {
@@ -426,5 +427,34 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       logoPath: target,
     })
     return target
+  }))
+
+  ipcMain.handle('reports:summary', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z
+      .object({ from: z.string().min(1), to: z.string().min(1) })
+      .safeParse(payload ?? {})
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    return reportSummary(db, parsed.data)
+  }))
+
+  ipcMain.handle('reports:sales', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z
+      .object({ from: z.string().min(1), to: z.string().min(1) })
+      .safeParse(payload ?? {})
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    const rows = db
+      .prepare(
+        `SELECT id FROM sales
+         WHERE created_at >= ? AND created_at < ? AND status != 'cancelled'
+         ORDER BY created_at DESC`,
+      )
+      .all(parsed.data.from, parsed.data.to) as { id: number }[]
+    return rows.map((r) => getSale(db, r.id))
   }))
 }
