@@ -14,6 +14,7 @@ function rowToSettings(row: {
   receipt_font_scale: number
   employees_see_delivered: number
   employees_can_collect_deliver: number
+  employees_can_access_delivery: number
 }): ReceiptSettings {
   return {
     id: 1,
@@ -29,6 +30,7 @@ function rowToSettings(row: {
     receipt_font_scale: row.receipt_font_scale,
     employees_see_delivered: Boolean(row.employees_see_delivered),
     employees_can_collect_deliver: Boolean(row.employees_can_collect_deliver),
+    employees_can_access_delivery: Boolean(row.employees_can_access_delivery),
     updated_at: '',
   }
 }
@@ -49,6 +51,7 @@ export function getReceiptSettings(db: Database): ReceiptSettings {
     receipt_font_scale: number
     employees_see_delivered: number
     employees_can_collect_deliver: number
+    employees_can_access_delivery: number
   }
   return rowToSettings(row)
 }
@@ -68,6 +71,7 @@ export function updateReceiptSettings(
     receiptFontScale?: number
     employeesSeeDelivered?: boolean
     employeesCanCollectDeliver?: boolean
+    employeesCanAccessDelivery?: boolean
   },
 ): void {
   db.prepare(
@@ -84,6 +88,7 @@ export function updateReceiptSettings(
       receipt_font_scale = ?,
       employees_see_delivered = ?,
       employees_can_collect_deliver = ?,
+      employees_can_access_delivery = ?,
       updated_at = ?
      WHERE id = 1`,
   ).run(
@@ -99,6 +104,7 @@ export function updateReceiptSettings(
     input.receiptFontScale ?? 1,
     input.employeesSeeDelivered ? 1 : 0,
     input.employeesCanCollectDeliver ? 1 : 0,
+    input.employeesCanAccessDelivery ? 1 : 0,
     new Date().toISOString(),
   )
 }

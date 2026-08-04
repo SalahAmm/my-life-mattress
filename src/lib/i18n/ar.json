@@ -343,6 +343,8 @@
     "invalidHeight": "الارتفاع بين 40 و 500 مم.",
     "deliveryVisibility": "التسليم",
     "deliveryVisibilityHelp": "تحكم في ما يمكن للموظفين رؤيته في شاشة التسليم.",
+    "employeesCanAccessDelivery": "يمكن للموظفين رؤية قسم التسليم",
+    "employeesCanAccessDeliveryHelp": "عند التعطيل، يُخفى القسم ويُمنع الموظفون من الوصول إليه. تبقى أوامر التسليم متاحة من شاشة البيع.",
     "employeesSeeDelivered": "يمكن للموظفين رؤية سجل التسليمات",
     "employeesSeeDeliveredHelp": "افتراضيًا، يرى الموظفون فقط الطلبات التي يجب تسليمها.",
     "employeesCanCollectDeliver": "يمكن للموظفين التحصيل والتسليم",

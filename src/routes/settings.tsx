@@ -82,6 +82,7 @@ function GeneralTab() {
       storeName?: string
       employeesSeeDelivered?: boolean
       employeesCanCollectDeliver?: boolean
+      employeesCanAccessDelivery?: boolean
     }) =>
       api.settings.updateReceipt({
         storeName: patch.storeName ?? settings!.store_name,
@@ -96,6 +97,8 @@ function GeneralTab() {
         employeesSeeDelivered: patch.employeesSeeDelivered ?? settings!.employees_see_delivered ?? false,
         employeesCanCollectDeliver:
           patch.employeesCanCollectDeliver ?? settings!.employees_can_collect_deliver ?? true,
+        employeesCanAccessDelivery:
+          patch.employeesCanAccessDelivery ?? settings!.employees_can_access_delivery ?? false,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['settings'] })
@@ -143,6 +146,12 @@ function GeneralTab() {
         </CardHeader>
         <CardContent className="space-y-3">
           <ToggleRow
+            label={t('settings.employeesCanAccessDelivery')}
+            hint={t('settings.employeesCanAccessDeliveryHelp')}
+            checked={settings.employees_can_access_delivery ?? false}
+            onChange={(checked) => saveMutation.mutate({ employeesCanAccessDelivery: checked })}
+          />
+          <ToggleRow
             label={t('settings.employeesSeeDelivered')}
             hint={t('settings.employeesSeeDeliveredHelp')}
             checked={settings.employees_see_delivered ?? false}
@@ -178,6 +187,9 @@ function PaymentTab() {
         showPhoneOnReceipt: settings!.show_phone_on_receipt,
         showQuantityOnReceipt: settings!.show_quantity_on_receipt,
         dimensionPresets: settings!.dimension_presets,
+        employeesSeeDelivered: settings!.employees_see_delivered ?? false,
+        employeesCanCollectDeliver: settings!.employees_can_collect_deliver ?? true,
+        employeesCanAccessDelivery: settings!.employees_can_access_delivery ?? false,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['settings'] })
@@ -513,6 +525,9 @@ function ReceiptTab() {
       receiptWidthMm?: number
       receiptHeightMm?: number | null
       receiptFontScale?: number
+      employeesSeeDelivered?: boolean
+      employeesCanCollectDeliver?: boolean
+      employeesCanAccessDelivery?: boolean
     }) => api.settings.updateReceipt(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['settings'] })
@@ -556,6 +571,9 @@ function ReceiptTab() {
       receiptWidthMm: patch.receiptWidthMm ?? settings.receipt_width_mm ?? 80,
       receiptHeightMm: patch.receiptHeightMm ?? settings.receipt_height_mm ?? null,
       receiptFontScale: patch.receiptFontScale ?? settings.receipt_font_scale ?? 1,
+      employeesSeeDelivered: settings.employees_see_delivered ?? false,
+      employeesCanCollectDeliver: settings.employees_can_collect_deliver ?? true,
+      employeesCanAccessDelivery: settings.employees_can_access_delivery ?? false,
     })
   }
 
@@ -804,6 +822,9 @@ function DimensionPresetsTab() {
         showPhoneOnReceipt: settings!.show_phone_on_receipt,
         showQuantityOnReceipt: settings!.show_quantity_on_receipt,
         dimensionPresets,
+        employeesSeeDelivered: settings!.employees_see_delivered ?? false,
+        employeesCanCollectDeliver: settings!.employees_can_collect_deliver ?? true,
+        employeesCanAccessDelivery: settings!.employees_can_access_delivery ?? false,
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['settings'] })

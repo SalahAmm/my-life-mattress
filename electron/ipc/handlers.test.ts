@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { AppError } from '@shared/types'
-import { effectiveListStatus, requireOwner } from './handlers'
+import { canAccessDelivery, effectiveListStatus, employeeDeliveryFlags, requireOwner } from './handlers'
 import { PRODUCT_SCHEMA, SALE_SCHEMA, SETTINGS_SCHEMA } from './handlers'
 
 const employeeAuth = {
@@ -224,6 +224,22 @@ describe('receipt settings validation', () => {
       }).success,
     ).toBe(true)
   })
+
+  it('accepts the employeesCanAccessDelivery flag', () => {
+    const result = SETTINGS_SCHEMA.safeParse({
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      dimensionPresets: [],
+      employeesCanAccessDelivery: true,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.employeesCanAccessDelivery).toBe(true)
+    }
+  })
 })
 
 describe('effectiveListStatus (employee delivery visibility)', () => {
@@ -241,5 +257,52 @@ describe('effectiveListStatus (employee delivery visibility)', () => {
   it('never restricts the owner', () => {
     expect(effectiveListStatus('owner', 'delivered', false)).toBe('delivered')
     expect(effectiveListStatus('owner', undefined, false)).toBeUndefined()
+  })
+})
+
+describe('canAccessDelivery', () => {
+  it('blocks employees when the owner setting is off', () => {
+    expect(canAccessDelivery('employee', false)).toBe(false)
+  })
+
+  it('allows employees when the owner setting is on', () => {
+    expect(canAccessDelivery('employee', true)).toBe(true)
+  })
+
+  it('always allows the owner', () => {
+    expect(canAccessDelivery('owner', false)).toBe(true)
+  })
+})
+
+describe('employeeDeliveryFlags (settings preservation)', () => {
+  const current = {
+    employees_see_delivered: true,
+    employees_can_collect_deliver: false,
+    employees_can_access_delivery: true,
+  }
+
+  it('falls back to stored values when the payload omits the flags', () => {
+    expect(employeeDeliveryFlags(undefined, current)).toEqual({
+      employeesSeeDelivered: true,
+      employeesCanCollectDeliver: false,
+      employeesCanAccessDelivery: true,
+    })
+    expect(employeeDeliveryFlags({}, current)).toEqual({
+      employeesSeeDelivered: true,
+      employeesCanCollectDeliver: false,
+      employeesCanAccessDelivery: true,
+    })
+  })
+
+  it('prefers values provided in the payload', () => {
+    const result = employeeDeliveryFlags(
+      { employeesSeeDelivered: false, employeesCanCollectDeliver: true, employeesCanAccessDelivery: false },
+      current,
+    )
+    expect(result).toEqual({
+      employeesSeeDelivered: false,
+      employeesCanCollectDeliver: true,
+      employeesCanAccessDelivery: false,
+    })
   })
 })

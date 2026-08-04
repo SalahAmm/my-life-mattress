@@ -180,4 +180,12 @@ export const MIGRATIONS: { version: number; up: (db: Database) => void }[] = [
       `)
     },
   },
+  {
+    version: 9,
+    up(db) {
+      db.exec(`
+        ALTER TABLE receipt_settings ADD COLUMN employees_can_access_delivery INTEGER NOT NULL DEFAULT 0;
+      `)
+    },
+  },
 ]

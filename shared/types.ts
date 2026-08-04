@@ -124,6 +124,7 @@ export type ReceiptSettings = {
   receipt_font_scale?: number
   employees_see_delivered?: boolean
   employees_can_collect_deliver?: boolean
+  employees_can_access_delivery?: boolean
   updated_at: string
 }
 

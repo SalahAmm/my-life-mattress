@@ -1,6 +1,6 @@
 {
   "name": "my-life-mattress",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "private": true,
   "description": "My Life Mattress — offline-first POS and store management app",
   "main": "out/main.js",
@@ -24,6 +24,7 @@
     },
     "files": [
       "out/**",
+      "dist/**",
       "package.json"
     ],
     "asarUnpack": [

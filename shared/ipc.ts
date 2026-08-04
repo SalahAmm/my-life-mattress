@@ -40,6 +40,7 @@ export interface UpdateReceiptSettingsInput {
   receiptFontScale?: number
   employeesSeeDelivered?: boolean
   employeesCanCollectDeliver?: boolean
+  employeesCanAccessDelivery?: boolean
 }
 
 export interface PrintResult {

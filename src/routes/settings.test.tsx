@@ -47,10 +47,13 @@ const mockApi = {
       logo_path: null,
       default_deposit_percentages: [30, 50, 70],
       dimension_presets: ['90x190', '160x190', '180x200'],
-      show_delivery_note: true,
-      show_phone_on_receipt: true,
-      show_quantity_on_receipt: true,
-      updated_at: '',
+       show_delivery_note: true,
+       show_phone_on_receipt: true,
+       show_quantity_on_receipt: true,
+       employees_see_delivered: false,
+       employees_can_collect_deliver: true,
+       employees_can_access_delivery: false,
+       updated_at: '',
     }),
     updateReceipt: vi.fn().mockResolvedValue(undefined),
     uploadLogo: vi.fn(),
@@ -178,6 +181,18 @@ describe('SettingsPage general tab', () => {
     }
     expect(call.employeesCanCollectDeliver).toBe(false)
   })
+
+  it('enables employee Delivery access via the toggle', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Général' }))
+    await user.click(await screen.findByRole('checkbox', { name: /Les employés peuvent voir la section Livraison/ }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      employeesCanAccessDelivery: boolean
+    }
+    expect(call.employeesCanAccessDelivery).toBe(true)
+  })
 })
 
 describe('SettingsPage payment tab', () => {
@@ -191,8 +206,14 @@ describe('SettingsPage payment tab', () => {
     await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
     const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
       defaultDepositPercentages: number[]
+      employeesSeeDelivered: boolean
+      employeesCanCollectDeliver: boolean
+      employeesCanAccessDelivery: boolean
     }
     expect(call.defaultDepositPercentages).toEqual([25, 30, 50, 70])
+    expect(call.employeesSeeDelivered).toBe(false)
+    expect(call.employeesCanCollectDeliver).toBe(true)
+    expect(call.employeesCanAccessDelivery).toBe(false)
   })
 
   it('removes a deposit percentage preset', async () => {
@@ -227,8 +248,14 @@ describe('SettingsPage receipt format', () => {
     await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
     const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
       receiptWidthMm: number
+      employeesSeeDelivered: boolean
+      employeesCanCollectDeliver: boolean
+      employeesCanAccessDelivery: boolean
     }
     expect(call.receiptWidthMm).toBe(58)
+    expect(call.employeesSeeDelivered).toBe(false)
+    expect(call.employeesCanCollectDeliver).toBe(true)
+    expect(call.employeesCanAccessDelivery).toBe(false)
   })
 
   it('saves the Grand font size as scale 1.2', async () => {

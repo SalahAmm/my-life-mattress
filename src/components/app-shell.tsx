@@ -6,7 +6,7 @@ import type { Role, Session } from '@shared/types'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/ipc-client'
 import { useAppLanguage } from '@/lib/i18n'
 import { useTheme } from '@/lib/theme'
@@ -35,7 +35,19 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 export function AppShell({ session }: { session: Session }) {
-  const items = NAV_ITEMS.filter((item) => item.roles.includes(session.role))
+  const { data: settings, isError: settingsError, isFetching: settingsFetching } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.settings.get(),
+    enabled: session.role === 'employee',
+    refetchOnMount: 'always',
+  })
+  const deliveryAccessKnown = session.role === 'owner' || (!settingsFetching && (settings !== undefined || settingsError))
+  const canAccessDelivery =
+    session.role === 'owner' ||
+    (session.role === 'employee' && !settingsFetching && !settingsError && settings?.employees_can_access_delivery === true)
+  const items = NAV_ITEMS.filter(
+    (item) => item.roles.includes(session.role) && (item.key !== 'delivery' || canAccessDelivery),
+  )
   const { language } = useAppLanguage()
 
   return (
@@ -51,7 +63,14 @@ export function AppShell({ session }: { session: Session }) {
               path="/stock"
               element={session.role === 'owner' ? <StockPage /> : <Navigate to="/" replace />}
             />
-            <Route path="/delivery" element={<DeliveryPage session={session} />} />
+            <Route
+              path="/delivery"
+              element={
+                deliveryAccessKnown ? (
+                  canAccessDelivery ? <DeliveryPage session={session} /> : <Navigate to="/" replace />
+                ) : null
+              }
+            />
             <Route
               path="/reports"
               element={
