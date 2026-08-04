@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { AppError } from '@shared/types'
-import { canAccessDelivery, effectiveListStatus, requireOwner } from './handlers'
+import { canAccessDelivery, effectiveListStatus, employeeDeliveryFlags, requireOwner } from './handlers'
 import { PRODUCT_SCHEMA, SALE_SCHEMA, SETTINGS_SCHEMA } from './handlers'
 
 const employeeAuth = {
@@ -271,5 +271,38 @@ describe('canAccessDelivery', () => {
 
   it('always allows the owner', () => {
     expect(canAccessDelivery('owner', false)).toBe(true)
+  })
+})
+
+describe('employeeDeliveryFlags (settings preservation)', () => {
+  const current = {
+    employees_see_delivered: true,
+    employees_can_collect_deliver: false,
+    employees_can_access_delivery: true,
+  }
+
+  it('falls back to stored values when the payload omits the flags', () => {
+    expect(employeeDeliveryFlags(undefined, current)).toEqual({
+      employeesSeeDelivered: true,
+      employeesCanCollectDeliver: false,
+      employeesCanAccessDelivery: true,
+    })
+    expect(employeeDeliveryFlags({}, current)).toEqual({
+      employeesSeeDelivered: true,
+      employeesCanCollectDeliver: false,
+      employeesCanAccessDelivery: true,
+    })
+  })
+
+  it('prefers values provided in the payload', () => {
+    const result = employeeDeliveryFlags(
+      { employeesSeeDelivered: false, employeesCanCollectDeliver: true, employeesCanAccessDelivery: false },
+      current,
+    )
+    expect(result).toEqual({
+      employeesSeeDelivered: false,
+      employeesCanCollectDeliver: true,
+      employeesCanAccessDelivery: false,
+    })
   })
 })

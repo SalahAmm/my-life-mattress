@@ -3,7 +3,7 @@ import { app, dialog, ipcMain } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { z } from 'zod'
-import type { Session } from '@shared/types'
+import type { ReceiptSettings, Session } from '@shared/types'
 import { AppError } from '@shared/types'
 import type { IpcResult } from '@shared/ipc'
 import type { AuthService } from '../auth/service'
@@ -94,6 +94,28 @@ export function canAccessDelivery(role: Session['role'], employeesCanAccessDeliv
 function requireDeliveryAccess(session: Session, employeesCanAccessDelivery: boolean): void {
   if (!canAccessDelivery(session.role, employeesCanAccessDelivery)) {
     throw new AppError('UNAUTHORIZED', 'Delivery access is disabled for employees')
+  }
+}
+
+export function employeeDeliveryFlags(
+  parsed: {
+    employeesSeeDelivered?: boolean
+    employeesCanCollectDeliver?: boolean
+    employeesCanAccessDelivery?: boolean
+  } | undefined,
+  current: Pick<
+    ReceiptSettings,
+    'employees_see_delivered' | 'employees_can_collect_deliver' | 'employees_can_access_delivery'
+  >,
+): {
+  employeesSeeDelivered: boolean
+  employeesCanCollectDeliver: boolean
+  employeesCanAccessDelivery: boolean
+} {
+  return {
+    employeesSeeDelivered: parsed?.employeesSeeDelivered ?? current.employees_see_delivered ?? false,
+    employeesCanCollectDeliver: parsed?.employeesCanCollectDeliver ?? current.employees_can_collect_deliver ?? true,
+    employeesCanAccessDelivery: parsed?.employeesCanAccessDelivery ?? current.employees_can_access_delivery ?? false,
   }
 }
 
@@ -601,10 +623,7 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       receiptWidthMm: parsed.data.receiptWidthMm,
       receiptHeightMm: parsed.data.receiptHeightMm,
       receiptFontScale: parsed.data.receiptFontScale,
-      employeesSeeDelivered: parsed.data.employeesSeeDelivered,
-      employeesCanCollectDeliver: parsed.data.employeesCanCollectDeliver,
-      employeesCanAccessDelivery:
-        parsed.data.employeesCanAccessDelivery ?? current.employees_can_access_delivery ?? false,
+      ...employeeDeliveryFlags(parsed.data, current),
       logoPath: current.logo_path,
     })
   }))

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
-import { createDatabase } from '../connection'
+import { applyMigrations, createDatabase } from '../connection'
 import { getReceiptSettings, updateReceiptSettings } from './receipt-settings'
 
 describe('receipt settings', () => {
@@ -166,5 +166,29 @@ describe('receipt settings', () => {
       employeesCanAccessDelivery: true,
     })
     expect(getReceiptSettings(db).employees_can_access_delivery).toBe(true)
+  })
+
+  it('upgrade from v8: defaults delivery access off and preserves the other delivery flags', () => {
+    const db = createDatabase(':memory:')
+    updateReceiptSettings(db, {
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      logoPath: null,
+      dimensionPresets: [],
+      employeesSeeDelivered: true,
+      employeesCanCollectDeliver: false,
+    })
+    db.exec(`
+      ALTER TABLE receipt_settings DROP COLUMN employees_can_access_delivery;
+      DELETE FROM _migrations WHERE version = 9;
+    `)
+    applyMigrations(db)
+    const settings = getReceiptSettings(db)
+    expect(settings.employees_can_access_delivery).toBe(false)
+    expect(settings.employees_see_delivered).toBe(true)
+    expect(settings.employees_can_collect_deliver).toBe(false)
   })
 })

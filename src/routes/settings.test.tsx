@@ -206,8 +206,14 @@ describe('SettingsPage payment tab', () => {
     await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
     const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
       defaultDepositPercentages: number[]
+      employeesSeeDelivered: boolean
+      employeesCanCollectDeliver: boolean
+      employeesCanAccessDelivery: boolean
     }
     expect(call.defaultDepositPercentages).toEqual([25, 30, 50, 70])
+    expect(call.employeesSeeDelivered).toBe(false)
+    expect(call.employeesCanCollectDeliver).toBe(true)
+    expect(call.employeesCanAccessDelivery).toBe(false)
   })
 
   it('removes a deposit percentage preset', async () => {
@@ -242,8 +248,14 @@ describe('SettingsPage receipt format', () => {
     await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
     const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
       receiptWidthMm: number
+      employeesSeeDelivered: boolean
+      employeesCanCollectDeliver: boolean
+      employeesCanAccessDelivery: boolean
     }
     expect(call.receiptWidthMm).toBe(58)
+    expect(call.employeesSeeDelivered).toBe(false)
+    expect(call.employeesCanCollectDeliver).toBe(true)
+    expect(call.employeesCanAccessDelivery).toBe(false)
   })
 
   it('saves the Grand font size as scale 1.2', async () => {
