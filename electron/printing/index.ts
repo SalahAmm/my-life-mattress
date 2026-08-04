@@ -4,9 +4,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { ReceiptFontUrls } from '@shared/printing/receipt'
 import { renderReceiptHtml } from '@shared/printing/receipt'
+import { renderReportHtml } from '@shared/printing/report'
 import { appendPrintScript } from '@shared/printing/print-script'
 import { getReceiptSettings } from '../db/queries/receipt-settings'
 import { getSale } from '../db/queries/sales'
+import { reportSummary, type ReportRange } from '../db/queries/reports'
 import { chooseLogoSrc } from './logo'
 
 const fontCache = new Map<string, string>()
@@ -81,6 +83,28 @@ export function receiptHtmlForSale(db: Database, saleId: number): string {
 
 export async function printReceipt(db: Database, saleId: number): Promise<{ success: boolean; reason?: string }> {
   return printHtml(receiptHtmlForSale(db, saleId), `Ticket ${saleId}`)
+}
+
+export function reportHtmlForRange(db: Database, range: ReportRange, rangeLabel: string): string {
+  const settings = getReceiptSettings(db)
+  const summary = reportSummary(db, range)
+  const rows = db
+    .prepare(
+      `SELECT id FROM sales
+       WHERE created_at >= ? AND created_at < ? AND status != 'cancelled'
+       ORDER BY created_at DESC`,
+    )
+    .all(range.from, range.to) as { id: number }[]
+  const sales = rows.map((r) => getSale(db, r.id))
+  return renderReportHtml({ settings, summary, sales, fontUrls: mainProcessFontUrls(), rangeLabel, range })
+}
+
+export async function printReport(db: Database, range: ReportRange, rangeLabel: string): Promise<{ success: boolean; reason?: string }> {
+  return printHtml(reportHtmlForRange(db, range, rangeLabel), 'Rapport des ventes')
+}
+
+export async function printReportInBrowser(db: Database, range: ReportRange, rangeLabel: string): Promise<{ success: boolean; reason?: string }> {
+  return printInBrowser(reportHtmlForRange(db, range, rangeLabel), 'Rapport des ventes')
 }
 
 function logoDataUri(filePath: string): string {

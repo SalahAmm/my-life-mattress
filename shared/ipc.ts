@@ -120,6 +120,11 @@ export interface ElectronAPI {
   printing: {
     printReceipt(saleId: number): Promise<PrintResult>
     printInBrowser(saleId: number): Promise<PrintResult>
+    printReport(range: ReportRange, rangeLabel: string): Promise<PrintResult>
+    printReportInBrowser(range: ReportRange, rangeLabel: string): Promise<PrintResult>
+  }
+  files: {
+    saveCsv(input: { defaultName: string; content: string }): Promise<string | null>
   }
   settings: {
     get(): Promise<ReceiptSettings>

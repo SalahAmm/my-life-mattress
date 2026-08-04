@@ -116,7 +116,11 @@
     "paid": "Payé",
     "due": "Solde dû",
     "noSales": "Aucune vente",
-    "noSalesHint": "Aucune vente sur cette période."
+    "noSalesHint": "Aucune vente sur cette période.",
+    "exportCsv": "Exporter CSV",
+    "saveCsv": "Sauvegarder le fichier",
+    "csvSaved": "Fichier CSV enregistré",
+    "print": "Imprimer le Rapport"
   },
   "counter": {
     "title": "Vente Rapide",

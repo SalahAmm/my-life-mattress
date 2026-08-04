@@ -1,11 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Banknote, HandCoins, ReceiptText, TrendingUp } from 'lucide-react'
+import { Banknote, Download, HandCoins, Printer, ReceiptText, TrendingUp } from 'lucide-react'
+import { toast } from 'sonner'
 import { formatDzd } from '@shared/money'
+import { toCsv } from '@shared/csv'
+import { renderReportHtml } from '@shared/printing/report'
 import type { Session } from '@shared/types'
 import type { ReportRange } from '@shared/ipc'
 import { api } from '@/lib/ipc-client'
+import { PREVIEW_FONT_URLS } from '@/lib/receipt-preview'
 import { Card, CardContent } from '@/components/ui/card'
 import { PageHeader } from '@/components/management/page-header'
 import { KpiCard } from '@/components/management/kpi-card'
@@ -14,6 +18,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/management/empty-state'
 import { ReceiptText as ReceiptIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PrintPreviewDialog } from '@/components/print-preview-dialog'
 import { cn } from '@/lib/utils'
 
 type RangeTab = 'today' | 'week' | 'month' | 'year' | 'custom'
@@ -56,22 +63,71 @@ function rangeFor(tab: RangeTab, custom?: { from: Date; to: Date }): ReportRange
 export function ReportsPage({ session }: { session: Session }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState<RangeTab>('today')
+  const [printOpen, setPrintOpen] = useState(false)
+  const [csvOpen, setCsvOpen] = useState(false)
   const range = useMemo(() => rangeFor(tab), [tab])
+  const rangeLabel = useMemo(() => t(`reports.${tab}`), [tab, t])
 
   const { data: summary, isLoading } = useQuery({
     queryKey: ['report-summary', range.from, range.to],
     queryFn: () => api.reports.summary(range),
+  })
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.settings.get(),
   })
   const { data: sales = [] } = useQuery({
     queryKey: ['report-sales', range.from, range.to],
     queryFn: () => api.reports.sales(range),
   })
 
+  const reportHtml =
+    summary && settings
+      ? renderReportHtml({ settings, summary, sales, fontUrls: PREVIEW_FONT_URLS, rangeLabel, range })
+      : ''
+
+  const csvContent = useMemo(() => {
+    if (sales.length === 0) return toCsv([], [])
+    return toCsv(
+      sales.map((sale) => ({
+        'N°': String(sale.id).padStart(4, '0'),
+        Client: sale.customer_name ?? '',
+        Wilaya: sale.wilaya ?? '',
+        Total: sale.total,
+        Payé: sale.paid,
+        'Solde dû': sale.remaining,
+      })),
+      ['N°', 'Client', 'Wilaya', 'Total', 'Payé', 'Solde dû'],
+    )
+  }, [sales])
+
+  const saveCsv = async () => {
+    const path = await api.files.saveCsv({ defaultName: `rapport-${tab}.csv`, content: csvContent })
+    if (path) {
+      setCsvOpen(false)
+      toast.success(t('reports.csvSaved'))
+    }
+  }
+
   void session
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <PageHeader title={t('reports.title')} />
+      <PageHeader
+        title={t('reports.title')}
+        action={
+          <div className="flex gap-2">
+            <Button variant="outline" disabled={!summary} onClick={() => setCsvOpen(true)}>
+              <Download />
+              {t('reports.exportCsv')}
+            </Button>
+            <Button disabled={!summary} onClick={() => setPrintOpen(true)}>
+              <Printer />
+              {t('reports.print')}
+            </Button>
+          </div>
+        }
+      />
       <Tabs value={tab} onValueChange={(value) => setTab(value as RangeTab)} className="w-fit">
         <TabsList>
           <TabsTrigger value="today">{t('reports.today')}</TabsTrigger>
@@ -168,6 +224,61 @@ export function ReportsPage({ session }: { session: Session }) {
           </div>
         </>
       )}
+      {reportHtml && (
+        <PrintPreviewDialog
+          open={printOpen}
+          onOpenChange={setPrintOpen}
+          title={t('reports.print')}
+          html={reportHtml}
+          onPrint={() => api.printing.printReport(range, rangeLabel)}
+          printing={false}
+          printError={null}
+          browserPrintLabel={t('counter.printBrowser')}
+          onBrowserPrint={() => api.printing.printReportInBrowser(range, rangeLabel)}
+        />
+      )}
+      <Dialog open={csvOpen} onOpenChange={setCsvOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t('reports.exportCsv')}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[420px] overflow-auto rounded-none border">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card">
+                <TableRow>
+                  <TableHead>{t('reports.orderNo')}</TableHead>
+                  <TableHead>{t('reports.customer')}</TableHead>
+                  <TableHead>{t('reports.wilaya')}</TableHead>
+                  <TableHead className="text-end">{t('reports.total')}</TableHead>
+                  <TableHead className="text-end">{t('reports.paid')}</TableHead>
+                  <TableHead className="text-end">{t('reports.due')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sales.map((sale) => (
+                  <TableRow key={sale.id}>
+                    <TableCell dir="ltr">{String(sale.id).padStart(4, '0')}</TableCell>
+                    <TableCell dir="auto">{sale.customer_name}</TableCell>
+                    <TableCell dir="auto">{sale.wilaya ?? '—'}</TableCell>
+                    <TableCell className="text-end" dir="ltr">{formatDzd(sale.total)}</TableCell>
+                    <TableCell className="text-end" dir="ltr">{formatDzd(sale.paid)}</TableCell>
+                    <TableCell className="text-end" dir="ltr">{formatDzd(sale.remaining)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setCsvOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button onClick={() => void saveCsv()}>
+              <Download />
+              {t('reports.saveCsv')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

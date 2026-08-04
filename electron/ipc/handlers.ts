@@ -23,7 +23,7 @@ import {
 } from '../db/queries/sales'
 import { getReceiptSettings, updateReceiptSettings } from '../db/queries/receipt-settings'
 import { reportSummary } from '../db/queries/reports'
-import { printInBrowser, printReceipt, receiptHtmlForSale } from '../printing'
+import { printInBrowser, printReceipt, printReport, printReportInBrowser, receiptHtmlForSale } from '../printing'
 
 type Handler<TInput, TOutput> = (args: {
   auth: AuthService
@@ -376,6 +376,42 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     requireSession(auth)
     const saleId = z.number().int().positive().parse(payload)
     return printInBrowser(receiptHtmlForSale(db, saleId), `Ticket ${saleId}`)
+  }))
+
+  ipcMain.handle('printing:printReport', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z.object({ range: z.object({ from: z.string().min(1), to: z.string().min(1) }), rangeLabel: z.string().min(1) }).safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    return printReport(db, parsed.data.range, parsed.data.rangeLabel)
+  }))
+
+  ipcMain.handle('printing:printReportInBrowser', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z.object({ range: z.object({ from: z.string().min(1), to: z.string().min(1) }), rangeLabel: z.string().min(1) }).safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    return printReportInBrowser(db, parsed.data.range, parsed.data.rangeLabel)
+  }))
+
+  ipcMain.handle('files:saveCsv', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z.object({ defaultName: z.string().trim().min(1).max(200), content: z.string().min(1).max(10_000_000) }).safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    const result = await dialog.showSaveDialog({
+      title: 'Exporter CSV',
+      defaultPath: parsed.data.defaultName,
+      filters: [{ name: 'CSV', extensions: ['csv'] }],
+    })
+    if (result.canceled || !result.filePath) {
+      return null
+    }
+    fs.writeFileSync(result.filePath, parsed.data.content, 'utf8')
+    return result.filePath
   }))
 
   ipcMain.handle('settings:get', wrap(async () => {

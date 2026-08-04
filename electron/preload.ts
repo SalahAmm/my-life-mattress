@@ -53,6 +53,11 @@ const api: ElectronAPI = {
   printing: {
     printReceipt: (saleId) => invoke('printing:printReceipt', saleId),
     printInBrowser: (saleId) => invoke('printing:printInBrowser', saleId),
+    printReport: (range, rangeLabel) => invoke('printing:printReport', { range, rangeLabel }),
+    printReportInBrowser: (range, rangeLabel) => invoke('printing:printReportInBrowser', { range, rangeLabel }),
+  },
+  files: {
+    saveCsv: (input) => invoke('files:saveCsv', input),
   },
   settings: {
     get: () => invoke('settings:get'),
