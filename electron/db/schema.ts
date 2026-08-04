@@ -154,4 +154,30 @@ export const MIGRATIONS: { version: number; up: (db: Database) => void }[] = [
       `)
     },
   },
+  {
+    version: 6,
+    up(db) {
+      db.exec(`
+        ALTER TABLE receipt_settings ADD COLUMN receipt_width_mm INTEGER NOT NULL DEFAULT 80;
+        ALTER TABLE receipt_settings ADD COLUMN receipt_height_mm INTEGER;
+        ALTER TABLE receipt_settings ADD COLUMN receipt_font_scale REAL NOT NULL DEFAULT 1;
+      `)
+    },
+  },
+  {
+    version: 7,
+    up(db) {
+      db.exec(`
+        ALTER TABLE receipt_settings ADD COLUMN employees_see_delivered INTEGER NOT NULL DEFAULT 0;
+      `)
+    },
+  },
+  {
+    version: 8,
+    up(db) {
+      db.exec(`
+        ALTER TABLE receipt_settings ADD COLUMN employees_can_collect_deliver INTEGER NOT NULL DEFAULT 1;
+      `)
+    },
+  },
 ]

@@ -42,6 +42,10 @@ function money(value: number): string {
 
 export function renderReceiptHtml(input: ReceiptTemplateInput): string {
   const { sale, settings, fontUrls, logoSrc } = input
+  const widthMm = settings.receipt_width_mm ?? 80
+  const heightMm = settings.receipt_height_mm ?? null
+  const scale = settings.receipt_font_scale ?? 1
+  const px = (base: number) => Math.round(base * scale)
   const deposit = sale.payments.find((p) => p.type === 'deposit')
   const depositPercent = deposit?.entered_as_percentage != null ? Math.round((deposit.amount / sale.total) * 100) : null
 
@@ -87,36 +91,36 @@ export function renderReceiptHtml(input: ReceiptTemplateInput): string {
 <meta charset="utf-8" />
 <title>Ticket De Commande</title>
 <style>
-  @page { size: 80mm auto; margin: 0; }
+  @page { size: ${widthMm}mm ${heightMm != null ? `${heightMm}mm` : 'auto'}; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    width: 80mm;
+    width: ${widthMm}mm;
     padding: 6mm 4mm;
     font-family: 'Inter', 'Noto Sans Arabic', sans-serif;
-    font-size: 11px;
+    font-size: ${px(11)}px;
     color: #111;
     background: #fff;
   }
   ${fontFaces(fontUrls)}
   .center { text-align: center; }
-  .store-name { font-size: 15px; font-weight: 800; }
-  .store-name-ar { font-size: 12px; font-weight: 700; }
-  .doc-label { font-size: 11px; margin-top: 2px; font-weight: 600; }
+  .store-name { font-size: ${px(15)}px; font-weight: 800; }
+  .store-name-ar { font-size: ${px(12)}px; font-weight: 700; }
+  .doc-label { font-size: ${px(11)}px; margin-top: 2px; font-weight: 600; }
   .rule { border-top: 1px dashed #666; margin: 6px 0; }
   .client { margin-top: 6px; }
-  .client .name { font-weight: 700; font-size: 12px; }
+  .client .name { font-weight: 700; font-size: ${px(12)}px; }
   .client .phone { color: #333; margin-top: 1px; }
   .items { margin-top: 4px; }
   .item { margin-top: 5px; }
   .item-name { font-weight: 600; }
   .item-line { display: flex; justify-content: space-between; color: #333; }
   .right { white-space: nowrap; }
-  .total-row { display: flex; justify-content: space-between; font-weight: 800; font-size: 13px; padding-top: 6px; }
+  .total-row { display: flex; justify-content: space-between; font-weight: 800; font-size: ${px(13)}px; padding-top: 6px; }
   .pay-row { display: flex; justify-content: space-between; margin-top: 4px; }
-  .remaining { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; margin-top: 8px; }
+  .remaining { display: flex; justify-content: space-between; font-size: ${px(15)}px; font-weight: 900; margin-top: 8px; }
   .remaining span.right { color: #000; }
   .delivery-note { text-align: center; margin-top: 8px; font-weight: 700; }
-  .footer { text-align: center; margin-top: 8px; color: #555; font-size: 9px; }
+  .footer { text-align: center; margin-top: 8px; color: #555; font-size: ${px(9)}px; }
   .address { color: #333; margin-top: 1px; }
   .logo { max-width: 40mm; max-height: 15mm; object-fit: contain; margin-bottom: 4px; }
 </style>

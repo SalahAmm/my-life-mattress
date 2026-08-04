@@ -3,11 +3,11 @@ import { BrowserWindow, shell } from 'electron'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
 import crypto from 'node:crypto'
 import type { ReceiptFontUrls } from '@shared/printing/receipt'
 import { renderReceiptHtml } from '@shared/printing/receipt'
 import { renderReportHtml } from '@shared/printing/report'
+import type { SaleWithDetails } from '@shared/types'
 import { getReceiptSettings } from '../db/queries/receipt-settings'
 import { getSale } from '../db/queries/sales'
 import { reportSummary, type ReportRange } from '../db/queries/reports'
@@ -34,37 +34,38 @@ export function mainProcessFontUrls(): ReceiptFontUrls {
   }
 }
 
-function writeTempHtml(html: string, label: string): string {
+function writeTempFile(data: string | Buffer, ext: string, label: string): string {
   const dir = path.join(os.tmpdir(), 'mlm-print')
   fs.mkdirSync(dir, { recursive: true })
-  const file = path.join(dir, `${label}-${crypto.randomUUID()}.html`)
-  fs.writeFileSync(file, html, 'utf8')
+  const file = path.join(dir, `${label}-${crypto.randomUUID()}.${ext}`)
+  fs.writeFileSync(file, data)
   setTimeout(() => {
     fs.rmSync(file, { force: true })
   }, 10 * 60 * 1000).unref()
   return file
 }
 
-export function printHtml(html: string, title: string): Promise<{ success: boolean; reason?: string }> {
-  return new Promise((resolve) => {
-    const tempFile = writeTempHtml(html, 'print')
-    const win = new BrowserWindow({
-      show: false,
-      webPreferences: { sandbox: true, contextIsolation: true },
-    })
-    win.setTitle(title)
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.print({ silent: false }, (success, failureReason) => {
-        win.destroy()
-        resolve({ success, reason: failureReason })
-      })
-    })
-    win.webContents.on('did-fail-load', (_event, _code, desc) => {
-      win.destroy()
-      resolve({ success: false, reason: desc })
-    })
-    void win.loadFile(tempFile)
+async function pdfForHtml(html: string): Promise<Buffer> {
+  const tempFile = writeTempFile(html, 'html', 'pdf-src')
+  const win = new BrowserWindow({
+    show: false,
+    webPreferences: { sandbox: true, contextIsolation: true },
   })
+  try {
+    await win.loadFile(tempFile)
+    return await win.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true })
+  } finally {
+    win.destroy()
+  }
+}
+
+async function openPdf(pdf: Buffer, label: string): Promise<{ success: boolean; reason?: string }> {
+  const file = writeTempFile(pdf, 'pdf', label)
+  const errorMessage = await shell.openPath(file)
+  if (errorMessage) {
+    return { success: false, reason: errorMessage }
+  }
+  return { success: true }
 }
 
 let brandLogoUri: string | null | undefined
@@ -96,7 +97,75 @@ export function receiptHtmlForSale(db: Database, saleId: number): string {
 }
 
 export async function printReceipt(db: Database, saleId: number): Promise<{ success: boolean; reason?: string }> {
-  return printHtml(receiptHtmlForSale(db, saleId), `Ticket ${saleId}`)
+  try {
+    const pdf = await pdfForHtml(receiptHtmlForSale(db, saleId))
+    return await openPdf(pdf, `ticket-${saleId}`)
+  } catch (error) {
+    return { success: false, reason: error instanceof Error ? error.message : 'unknown' }
+  }
+}
+
+function sampleSaleForPrint(): SaleWithDetails {
+  return {
+    id: 0,
+    customer_id: null,
+    customer_name: 'Exemple de client',
+    customer_phone: '0550123456',
+    created_by: 1,
+    created_by_username: 'Kamel',
+    status: 'ordered',
+    wilaya: 'Alger',
+    delivery_address: 'Cité 5 Juillet',
+    free_delivery: true,
+    created_at: new Date().toISOString(),
+    items: [
+      {
+        id: 1,
+        sale_id: 0,
+        product_variant_id: 1,
+        quantity: 1,
+        unit_price_at_sale: 45000,
+        custom_description: null,
+        product_name: 'Matelas Orthopédique Elite',
+        dimension: '160×190',
+        variant_name: null,
+      },
+      {
+        id: 2,
+        sale_id: 0,
+        product_variant_id: null,
+        quantity: 1,
+        unit_price_at_sale: 12000,
+        custom_description: 'Dimension Personnalisée: 170×200',
+        product_name: null,
+        dimension: null,
+        variant_name: null,
+      },
+    ],
+    payments: [{ id: 1, sale_id: 0, amount: 17100, type: 'deposit', entered_as_percentage: 30, created_at: '' }],
+    total: 57000,
+    paid: 17100,
+    remaining: 39900,
+  }
+}
+
+export function sampleReceiptHtml(db: Database): string {
+  const settings = getReceiptSettings(db)
+  return renderReceiptHtml({
+    sale: sampleSaleForPrint(),
+    settings,
+    fontUrls: mainProcessFontUrls(),
+    logoSrc: chooseLogoSrc(settings.logo_path ? logoDataUri(settings.logo_path) : null, brandLogoDataUri()),
+  })
+}
+
+export async function printTestReceipt(db: Database): Promise<{ success: boolean; reason?: string }> {
+  try {
+    const pdf = await pdfForHtml(sampleReceiptHtml(db))
+    return await openPdf(pdf, 'receipt-test')
+  } catch (error) {
+    return { success: false, reason: error instanceof Error ? error.message : 'unknown' }
+  }
 }
 
 export function reportHtmlForRange(db: Database, range: ReportRange, rangeLabel: string): string {
@@ -114,11 +183,12 @@ export function reportHtmlForRange(db: Database, range: ReportRange, rangeLabel:
 }
 
 export async function printReport(db: Database, range: ReportRange, rangeLabel: string): Promise<{ success: boolean; reason?: string }> {
-  return printHtml(reportHtmlForRange(db, range, rangeLabel), 'Rapport des ventes')
-}
-
-export async function printReportInBrowser(db: Database, range: ReportRange, rangeLabel: string): Promise<{ success: boolean; reason?: string }> {
-  return printInBrowser(reportHtmlForRange(db, range, rangeLabel), 'Rapport des ventes')
+  try {
+    const pdf = await pdfForHtml(reportHtmlForRange(db, range, rangeLabel))
+    return await openPdf(pdf, 'sales-report')
+  } catch (error) {
+    return { success: false, reason: error instanceof Error ? error.message : 'unknown' }
+  }
 }
 
 function logoDataUri(filePath: string): string {
@@ -126,10 +196,4 @@ function logoDataUri(filePath: string): string {
   const mime = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg'
   const base64 = fs.readFileSync(filePath).toString('base64')
   return `data:${mime};base64,${base64}`
-}
-
-export async function printInBrowser(html: string, _title: string): Promise<{ success: boolean; reason?: string }> {
-  const tempFile = writeTempHtml(html, 'browser')
-  await shell.openExternal(pathToFileURL(tempFile).toString())
-  return { success: true }
 }

@@ -53,12 +53,21 @@ export function DeliveryPage({ session }: { session: Session }) {
     queryKey: ['delivery-sales'],
     queryFn: () => api.sales.list({}),
   })
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.settings.get(),
+  })
+
+  const isOwner = session.role === 'owner'
+  const canSeeDelivered = isOwner || Boolean(settings?.employees_see_delivered)
+  const canCollectDeliver = isOwner || Boolean(settings?.employees_can_collect_deliver ?? true)
+  const activeTab: DeliveryTab = tab === 'delivered' && !canSeeDelivered ? 'ordered' : tab
 
   const pending = useMemo(() => allSales.filter((s) => s.status === 'ordered'), [allSales])
   const delivered = useMemo(() => allSales.filter((s) => s.status === 'delivered'), [allSales])
   const deliveredCount = delivered.length
   const toCollect = useMemo(() => pending.reduce((sum, s) => sum + s.remaining, 0), [pending])
-  const sales = useMemo(() => (tab === 'ordered' ? pending : delivered), [tab, pending, delivered])
+  const sales = useMemo(() => (activeTab === 'ordered' ? pending : delivered), [activeTab, pending, delivered])
   const filteredHistory = useMemo(
     () => delivered.filter((s) => inHistoryRange(s.created_at, historyFilter)),
     [delivered, historyFilter],
@@ -117,25 +126,25 @@ export function DeliveryPage({ session }: { session: Session }) {
     onError: (error: Error) => toast.error(error.message),
   })
 
-  const isOwner = session.role === 'owner'
-
   return (
     <div className="flex h-full flex-col gap-4">
       <PageHeader title={t('delivery.title')} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <KpiCard label={t('delivery.pending')} value={String(pending.length)} icon={Clock} status="warning" />
-        <KpiCard label={t('delivery.delivered')} value={String(deliveredCount)} icon={CheckCircle2} status="success" />
+        {canSeeDelivered && (
+          <KpiCard label={t('delivery.delivered')} value={String(deliveredCount)} icon={CheckCircle2} status="success" />
+        )}
         {isOwner && (
           <KpiCard label={t('delivery.toCollect')} value={formatDzd(toCollect)} icon={HandCoins} status="info" />
         )}
       </div>
-      <Tabs value={tab} onValueChange={(value) => setTab(value as DeliveryTab)} className="w-fit">
+      <Tabs value={activeTab} onValueChange={(value) => setTab(value as DeliveryTab)} className="w-fit">
         <TabsList>
           <TabsTrigger value="ordered">{t('delivery.pending')}</TabsTrigger>
-          <TabsTrigger value="delivered">{t('delivery.delivered')}</TabsTrigger>
+          {canSeeDelivered && <TabsTrigger value="delivered">{t('delivery.delivered')}</TabsTrigger>}
         </TabsList>
       </Tabs>
-      {tab === 'ordered' ? (
+      {activeTab === 'ordered' ? (
         sales.length === 0 ? (
           <Card className="flex flex-1 flex-col items-center justify-center">
             <EmptyState icon={Package} title={t('delivery.noOrders')} hint={t('delivery.noOrdersPending')} />
@@ -153,7 +162,11 @@ export function DeliveryPage({ session }: { session: Session }) {
                 </div>
                 <div className="space-y-3">
                   {groupSales.map((sale) => (
-                    <OrderCard key={sale.id} sale={sale} onDeliver={() => setDeliverSale(sale)} />
+                    <OrderCard
+                      key={sale.id}
+                      sale={sale}
+                      onDeliver={canCollectDeliver ? () => setDeliverSale(sale) : undefined}
+                    />
                   ))}
                 </div>
               </div>

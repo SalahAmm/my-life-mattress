@@ -109,7 +109,13 @@ export function CounterPage({ session }: { session: Session }) {
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase()
     return products.filter((p) => {
-      if (activeCategory !== null && p.category_id !== activeCategory) return false
+      if (activeCategory !== null) {
+        if (activeCategory === -1) {
+          if (p.category_id !== null) return false
+        } else if (p.category_id !== activeCategory) {
+          return false
+        }
+      }
       if (!query) return true
       if (p.name.toLowerCase().includes(query)) return true
       return p.variants.some(
@@ -198,19 +204,6 @@ export function CounterPage({ session }: { session: Session }) {
     onSuccess: () => {
       setPrintError(null)
       toast.success(t('counter.saleSaved'))
-    },
-    onError: (error: Error) => {
-      setPrintError(error.message)
-    },
-  })
-
-  const browserPrintMutation = useMutation({
-    mutationFn: async (saleId: number) => {
-      const result = await api.printing.printInBrowser(saleId)
-      if (!result.success) {
-        throw new Error(t('counter.printFailedHint'))
-      }
-      return result
     },
     onError: (error: Error) => {
       setPrintError(error.message)
@@ -362,6 +355,26 @@ export function CounterPage({ session }: { session: Session }) {
                     </button>
                   )
                 })}
+                {(() => {
+                  const count = products.filter((p) => p.category_id === null).length
+                  if (count === 0) return null
+                  return (
+                    <button
+                      type="button"
+                      aria-label={t('counter.uncategorized')}
+                      onClick={() => setActiveCategory(-1)}
+                      className="flex flex-col items-center gap-2 border bg-card p-6 text-center transition-colors hover:bg-muted"
+                    >
+                      <span className="text-3xl font-bold text-muted-foreground">—</span>
+                      <span className="font-semibold" dir="auto">
+                        {t('counter.uncategorized')}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {count} {count > 1 ? t('counter.products') : t('counter.product')}
+                      </span>
+                    </button>
+                  )
+                })()}
               </div>
             </>
           ) : (
@@ -389,7 +402,14 @@ export function CounterPage({ session }: { session: Session }) {
           )}
         </div>
 
-        {isNarrow ? null : <div className={`flex shrink-0 flex-col gap-3 ${cartPanelWidth(cart.length)}`}>{checkoutPanel}</div>}
+        {isNarrow ? null : (
+          <div
+            data-testid="checkout-column"
+            className={`flex h-full min-h-0 shrink-0 flex-col gap-3 overflow-hidden ${cartPanelWidth(cart.length)}`}
+          >
+            {checkoutPanel}
+          </div>
+        )}
       </div>
 
       {isNarrow && (
@@ -582,9 +602,6 @@ export function CounterPage({ session }: { session: Session }) {
           printError={printError}
           finishLabel={t('counter.finish')}
           onFinish={finishSale}
-          browserPrintLabel={t('counter.printBrowser')}
-          onBrowserPrint={() => browserPrintMutation.mutateAsync(previewSale.id)}
-          browserPrinting={browserPrintMutation.isPending}
         />
       )}
       {previewSale && !previewOpen && (
@@ -873,19 +890,26 @@ function CheckoutPanel({
 
   return (
     <>
-      <Card className="flex min-h-0 flex-1 flex-col p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-bold">{t('counter.cart')}</h2>
-          <Badge variant="secondary">{cart.reduce((sum, l) => sum + l.quantity, 0)}</Badge>
-        </div>
-        {cart.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+      {cart.length === 0 ? (
+        <Card className="flex min-h-0 flex-1 flex-col p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-bold">{t('counter.cart')}</h2>
+            <Badge variant="secondary">0</Badge>
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 text-center text-muted-foreground">
             <ShoppingCart className="size-10" />
             <p className="font-semibold text-foreground">{t('counter.cartEmpty')}</p>
             <p className="text-sm">{t('counter.cartEmptyHint')}</p>
           </div>
-        ) : (
-          <div className="min-h-0 flex-1 space-y-3 overflow-auto">
+        </Card>
+      ) : (
+        <>
+          <Card className="flex max-h-[42%] shrink-0 flex-col p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="font-bold">{t('counter.cart')}</h2>
+              <Badge variant="secondary">{cart.reduce((sum, l) => sum + l.quantity, 0)}</Badge>
+            </div>
+            <div className="min-h-0 flex-1 space-y-3 overflow-auto">
             {cart.map((line) => (
               <div key={line.key} className="rounded-none border p-2">
                 <div className="flex items-start justify-between gap-2">
@@ -931,80 +955,84 @@ function CheckoutPanel({
               </div>
             ))}
           </div>
-        )}
-      </Card>
+        </Card>
 
-      <Card className="space-y-3 p-4">
-        <div className="space-y-2">
-          <Label htmlFor="counter-customer">{t('counter.customerName')}</Label>
-          <Input
-            id="counter-customer"
-            dir="auto"
-            placeholder={t('counter.customerNamePlaceholder')}
-            value={customerName}
-            onChange={(e) => onCustomerName(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="counter-phone">{t('counter.customerPhone')}</Label>
-          <Input
-            id="counter-phone"
-            dir="ltr"
-            inputMode="tel"
-            placeholder={t('counter.customerPhonePlaceholder')}
-            value={customerPhone}
-            onChange={(e) => onCustomerPhone(e.target.value)}
-          />
-        </div>
-        {freeDeliveryEnabled && (
-          <label className="flex cursor-pointer items-center gap-2 border bg-muted/40 px-3 py-2 text-sm">
-            <Checkbox
-              checked={freeDelivery}
-              onCheckedChange={(value) => onFreeDelivery(Boolean(value))}
-            />
-            <span>{t('counter.freeShipping')}</span>
-          </label>
-        )}
-        <div className="space-y-2">
-          <Label>{t('counter.wilaya')}</Label>
-          {wilaya === '__custom' ? (
-            <Input
-              dir="auto"
-              placeholder={t('counter.otherWilaya')}
-              value={customWilaya}
-              onChange={(e) => onCustomWilaya(e.target.value)}
-            />
-          ) : (
-            <Select value={wilaya} onValueChange={onWilaya}>
-              <SelectTrigger aria-label={t('counter.wilaya')}>
-                <SelectValue placeholder={t('counter.chooseWilaya')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{t('counter.chooseWilaya')}</SelectItem>
-                {WILAYAS.map((w) => (
-                  <SelectItem key={w} value={w}>
-                    {w}
-                  </SelectItem>
-                ))}
-                <SelectItem value="__custom">{t('counter.otherWilaya')}</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+        <Card className="shrink-0 space-y-3 p-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label htmlFor="counter-customer">{t('counter.customerName')}</Label>
+              <Input
+                id="counter-customer"
+                dir="auto"
+                placeholder={t('counter.customerNamePlaceholder')}
+                value={customerName}
+                onChange={(e) => onCustomerName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="counter-phone">{t('counter.customerPhone')}</Label>
+              <Input
+                id="counter-phone"
+                dir="ltr"
+                inputMode="tel"
+                placeholder={t('counter.customerPhonePlaceholder')}
+                value={customerPhone}
+                onChange={(e) => onCustomerPhone(e.target.value)}
+              />
+            </div>
+          </div>
+          {freeDeliveryEnabled && (
+            <label className="flex cursor-pointer items-center gap-2 border bg-muted/40 px-3 py-2 text-sm">
+              <Checkbox
+                checked={freeDelivery}
+                onCheckedChange={(value) => onFreeDelivery(Boolean(value))}
+              />
+              <span>{t('counter.freeShipping')}</span>
+            </label>
           )}
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="counter-address">{t('counter.deliveryAddress')}</Label>
-          <Input
-            id="counter-address"
-            dir="auto"
-            placeholder={t('counter.deliveryAddressPlaceholder')}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label>{t('counter.wilaya')}</Label>
+              {wilaya === '__custom' ? (
+                <Input
+                  dir="auto"
+                  placeholder={t('counter.otherWilaya')}
+                  value={customWilaya}
+                  onChange={(e) => onCustomWilaya(e.target.value)}
+                />
+              ) : (
+                <Select value={wilaya} onValueChange={onWilaya}>
+                  <SelectTrigger aria-label={t('counter.wilaya')}>
+                    <SelectValue placeholder={t('counter.chooseWilaya')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('counter.chooseWilaya')}</SelectItem>
+                    {WILAYAS.map((w) => (
+                      <SelectItem key={w} value={w}>
+                        {w}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="__custom">{t('counter.otherWilaya')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="counter-address">{t('counter.deliveryAddress')}</Label>
+              <Input
+                id="counter-address"
+                dir="auto"
+                placeholder={t('counter.deliveryAddressPlaceholder')}
             value={deliveryAddress}
             onChange={(e) => onDeliveryAddress(e.target.value)}
           />
-        </div>
-      </Card>
+            </div>
+          </div>
+        </Card>
 
-      <Card className="space-y-3 p-4">
-        <h3 className="font-bold">{t('counter.payment')}</h3>
+        <Card className="mt-auto shrink-0 space-y-3 p-4">
+          <h3 className="font-bold">{t('counter.payment')}</h3>
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
@@ -1057,7 +1085,10 @@ function CheckoutPanel({
           {saving && <Loader2 className="size-4 animate-spin" />}
           {t('counter.save')}
         </Button>
-      </Card>
+        </Card>
+        </div>
+        </>
+      )}
     </>
   )
 }

@@ -58,7 +58,7 @@ const mockApi = {
   },
   categories: { list: vi.fn().mockResolvedValue([{ id: 1, name: 'Matelas', sort_order: 0, active: true }]) },
   sales: { create: vi.fn(), get: vi.fn(), recent: vi.fn(), addPayment: vi.fn(), setStatus: vi.fn(), cancel: vi.fn() },
-  printing: { printReceipt: vi.fn(), printInBrowser: vi.fn() },
+  printing: { printReceipt: vi.fn() },
   settings: {
     get: vi.fn().mockResolvedValue({
       id: 1,
@@ -259,6 +259,15 @@ describe('StockPage (ticket 08)', () => {
     await user.click(screen.getByRole('button', { name: /Rafik/ }))
     await user.click(screen.getByRole('button', { name: /Matelas/ }))
     expect(screen.getAllByText('Matelas Elite').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('clicking the uncategorized chip filters to products without a category', async () => {
+    renderStock()
+    await screen.findAllByText('Matelas Elite')
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Sans catégorie/ }))
+    expect(screen.getByText('Oreiller Confort')).toBeInTheDocument()
+    expect(screen.queryByText('Matelas Elite')).not.toBeInTheDocument()
   })
 
   it('clicking a chip again un-toggles it', async () => {

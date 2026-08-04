@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest'
 import { AppError } from '@shared/types'
-import { requireOwner } from './handlers'
+import { effectiveListStatus, requireOwner } from './handlers'
 import { PRODUCT_SCHEMA, SALE_SCHEMA, SETTINGS_SCHEMA } from './handlers'
 
 const employeeAuth = {
@@ -165,5 +165,81 @@ describe('receipt settings validation', () => {
         dimensionPresets: ['   '],
       }).success,
     ).toBe(false)
+  })
+
+  it('accepts receipt format fields within range', () => {
+    expect(
+      SETTINGS_SCHEMA.safeParse({
+        storeName: 'My Life Mattress',
+        defaultDepositPercentages: [30],
+        showDeliveryNote: true,
+        showPhoneOnReceipt: true,
+        showQuantityOnReceipt: true,
+        dimensionPresets: ['160x190'],
+        receiptWidthMm: 58,
+        receiptHeightMm: 300,
+        receiptFontScale: 1.2,
+      }).success,
+    ).toBe(true)
+  })
+
+  it('rejects out-of-range receipt format fields', () => {
+    const base = {
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      dimensionPresets: ['160x190'],
+    }
+    expect(SETTINGS_SCHEMA.safeParse({ ...base, receiptWidthMm: 20 }).success).toBe(false)
+    expect(SETTINGS_SCHEMA.safeParse({ ...base, receiptHeightMm: 600 }).success).toBe(false)
+    expect(SETTINGS_SCHEMA.safeParse({ ...base, receiptFontScale: 3 }).success).toBe(false)
+  })
+
+  it('accepts the employeesSeeDelivered flag', () => {
+    expect(
+      SETTINGS_SCHEMA.safeParse({
+        storeName: 'My Life Mattress',
+        defaultDepositPercentages: [30],
+        showDeliveryNote: true,
+        showPhoneOnReceipt: true,
+        showQuantityOnReceipt: true,
+        dimensionPresets: [],
+        employeesSeeDelivered: true,
+      }).success,
+    ).toBe(true)
+  })
+
+  it('accepts the employeesCanCollectDeliver flag', () => {
+    expect(
+      SETTINGS_SCHEMA.safeParse({
+        storeName: 'My Life Mattress',
+        defaultDepositPercentages: [30],
+        showDeliveryNote: true,
+        showPhoneOnReceipt: true,
+        showQuantityOnReceipt: true,
+        dimensionPresets: [],
+        employeesCanCollectDeliver: false,
+      }).success,
+    ).toBe(true)
+  })
+})
+
+describe('effectiveListStatus (employee delivery visibility)', () => {
+  it('forces ordered for employees when the flag is off', () => {
+    expect(effectiveListStatus('employee', undefined, false)).toBe('ordered')
+    expect(effectiveListStatus('employee', 'delivered', false)).toBe('ordered')
+    expect(effectiveListStatus('employee', 'cancelled', false)).toBe('ordered')
+  })
+
+  it('passes the requested status through when allowed', () => {
+    expect(effectiveListStatus('employee', 'delivered', true)).toBe('delivered')
+    expect(effectiveListStatus('employee', undefined, true)).toBeUndefined()
+  })
+
+  it('never restricts the owner', () => {
+    expect(effectiveListStatus('owner', 'delivered', false)).toBe('delivered')
+    expect(effectiveListStatus('owner', undefined, false)).toBeUndefined()
   })
 })

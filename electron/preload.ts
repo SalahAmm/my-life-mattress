@@ -35,6 +35,10 @@ const api: ElectronAPI = {
   },
   categories: {
     list: () => invoke('categories:list'),
+    listAll: () => invoke('categories:listAll'),
+    create: (input) => invoke('categories:create', input),
+    rename: (input) => invoke('categories:rename', input),
+    setActive: (input) => invoke('categories:setActive', input),
   },
   stock: {
     restock: (input) => invoke('stock:restock', input),
@@ -54,14 +58,16 @@ const api: ElectronAPI = {
   },
   printing: {
     printReceipt: (saleId) => invoke('printing:printReceipt', saleId),
-    printInBrowser: (saleId) => invoke('printing:printInBrowser', saleId),
+    testPrint: () => invoke('printing:testPrint'),
     printReport: (range, rangeLabel) => invoke('printing:printReport', { range, rangeLabel }),
-    printReportInBrowser: (range, rangeLabel) => invoke('printing:printReportInBrowser', { range, rangeLabel }),
   },
   files: {
     saveCsv: (input) => invoke('files:saveCsv', input),
     backupDatabase: () => invoke('files:backupDatabase'),
     restoreDatabase: () => invoke('files:restoreDatabase'),
+  },
+  data: {
+    deleteAll: (password) => invoke('data:deleteAll', { password }),
   },
   settings: {
     get: () => invoke('settings:get'),

@@ -35,6 +35,11 @@ export interface UpdateReceiptSettingsInput {
   showPhoneOnReceipt: boolean
   showQuantityOnReceipt: boolean
   dimensionPresets: string[]
+  receiptWidthMm?: number
+  receiptHeightMm?: number | null
+  receiptFontScale?: number
+  employeesSeeDelivered?: boolean
+  employeesCanCollectDeliver?: boolean
 }
 
 export interface PrintResult {
@@ -100,6 +105,10 @@ export interface ElectronAPI {
   }
   categories: {
     list(): Promise<Category[]>
+    listAll(): Promise<Category[]>
+    create(input: { name: string }): Promise<number>
+    rename(input: { id: number; name: string }): Promise<void>
+    setActive(input: { id: number; active: boolean }): Promise<void>
   }
   stock: {
     restock(input: { productVariantId: number; quantity: number }): Promise<void>
@@ -124,14 +133,16 @@ export interface ElectronAPI {
   }
   printing: {
     printReceipt(saleId: number): Promise<PrintResult>
-    printInBrowser(saleId: number): Promise<PrintResult>
+    testPrint(): Promise<PrintResult>
     printReport(range: ReportRange, rangeLabel: string): Promise<PrintResult>
-    printReportInBrowser(range: ReportRange, rangeLabel: string): Promise<PrintResult>
   }
   files: {
     saveCsv(input: { defaultName: string; content: string }): Promise<string | null>
     backupDatabase(): Promise<string | null>
     restoreDatabase(): Promise<{ requiresRestart: boolean } | null>
+  }
+  data: {
+    deleteAll(password: string): Promise<void>
   }
   settings: {
     get(): Promise<ReceiptSettings>

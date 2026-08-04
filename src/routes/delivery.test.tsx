@@ -122,7 +122,7 @@ const mockApi = {
     delete: vi.fn().mockResolvedValue(undefined),
     clearDelivered: vi.fn().mockResolvedValue(2),
   },
-  printing: { printReceipt: vi.fn(), printInBrowser: vi.fn() },
+  printing: { printReceipt: vi.fn() },
   settings: {
     get: vi.fn().mockResolvedValue({
       id: 1,
@@ -133,6 +133,8 @@ const mockApi = {
       show_delivery_note: true,
       show_phone_on_receipt: true,
       show_quantity_on_receipt: true,
+      employees_see_delivered: false,
+      employees_can_collect_deliver: true,
       updated_at: '',
     }),
     updateReceipt: vi.fn(),
@@ -281,10 +283,131 @@ describe('DeliveryPage delivered history', () => {
     await waitFor(() => expect(mockApi.sales.clearDelivered).toHaveBeenCalled())
   })
 
-  it('hides delete and clear actions for employees', async () => {
-    await openHistory(employeeSession)
+  it('hides delete and clear actions for employees with history access', async () => {
+    vi.mocked(mockApi.settings.get).mockResolvedValue({
+      id: 1,
+      store_name: 'MLM',
+      logo_path: null,
+      default_deposit_percentages: [30],
+      dimension_presets: ['160x190'],
+      show_delivery_note: true,
+      show_phone_on_receipt: true,
+      show_quantity_on_receipt: true,
+      employees_see_delivered: true,
+      updated_at: '',
+    })
+    const user = await openHistory(employeeSession)
     await screen.findByText('Rachid Hamdi')
     expect(screen.queryByRole('button', { name: /Supprimer/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Tout effacer/ })).not.toBeInTheDocument()
+    void user
+  })
+})
+
+describe('DeliveryPage employee visibility', () => {
+  it('hides the Livré tab, KPI and history from employees by default', async () => {
+    vi.mocked(mockApi.settings.get).mockResolvedValue({
+      id: 1,
+      store_name: 'MLM',
+      logo_path: null,
+      default_deposit_percentages: [30],
+      dimension_presets: ['160x190'],
+      show_delivery_note: true,
+      show_phone_on_receipt: true,
+      show_quantity_on_receipt: true,
+      employees_see_delivered: false,
+      updated_at: '',
+    })
+    renderDelivery(employeeSession)
+    await screen.findByText('Ahmed Benali')
+    expect(screen.queryByRole('tab', { name: 'Livré' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Livré')).not.toBeInTheDocument()
+    expect(screen.queryByText('Rachid Hamdi')).not.toBeInTheDocument()
+  })
+
+  it('keeps the Livré tab for the owner regardless of the setting', async () => {
+    renderDelivery(ownerSession)
+    expect(await screen.findByRole('tab', { name: 'Livré' })).toBeInTheDocument()
+  })
+
+  it('shows the Livré tab and history to employees when the owner allows it', async () => {
+    vi.mocked(mockApi.settings.get).mockResolvedValue({
+      id: 1,
+      store_name: 'MLM',
+      logo_path: null,
+      default_deposit_percentages: [30],
+      dimension_presets: ['160x190'],
+      show_delivery_note: true,
+      show_phone_on_receipt: true,
+      show_quantity_on_receipt: true,
+      employees_see_delivered: true,
+      employees_can_collect_deliver: true,
+      updated_at: '',
+    })
+    renderDelivery(employeeSession)
+    expect(await screen.findByRole('tab', { name: 'Livré' })).toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Livré' }))
+    expect(await screen.findByText('Rachid Hamdi')).toBeInTheDocument()
+  })
+})
+
+describe('DeliveryPage collect-and-deliver access', () => {
+  it('hides every deliver action for employees when the owner restricts it', async () => {
+    vi.mocked(mockApi.settings.get).mockResolvedValue({
+      id: 1,
+      store_name: 'MLM',
+      logo_path: null,
+      default_deposit_percentages: [30],
+      dimension_presets: ['160x190'],
+      show_delivery_note: true,
+      show_phone_on_receipt: true,
+      show_quantity_on_receipt: true,
+      employees_see_delivered: false,
+      employees_can_collect_deliver: false,
+      updated_at: '',
+    })
+    renderDelivery(employeeSession)
+    await screen.findByText('Ahmed Benali')
+    expect(screen.queryByRole('button', { name: /Encaisser et livrer/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Marquer comme livré/i })).not.toBeInTheDocument()
+  })
+
+  it('keeps the deliver action for employees by default', async () => {
+    vi.mocked(mockApi.settings.get).mockResolvedValue({
+      id: 1,
+      store_name: 'MLM',
+      logo_path: null,
+      default_deposit_percentages: [30],
+      dimension_presets: ['160x190'],
+      show_delivery_note: true,
+      show_phone_on_receipt: true,
+      show_quantity_on_receipt: true,
+      employees_see_delivered: false,
+      employees_can_collect_deliver: true,
+      updated_at: '',
+    })
+    renderDelivery(employeeSession)
+    await screen.findByText('Ahmed Benali')
+    expect(screen.getAllByRole('button', { name: /Encaisser et livrer/ }).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('always shows the deliver action for the owner', async () => {
+    vi.mocked(mockApi.settings.get).mockResolvedValue({
+      id: 1,
+      store_name: 'MLM',
+      logo_path: null,
+      default_deposit_percentages: [30],
+      dimension_presets: ['160x190'],
+      show_delivery_note: true,
+      show_phone_on_receipt: true,
+      show_quantity_on_receipt: true,
+      employees_see_delivered: false,
+      employees_can_collect_deliver: false,
+      updated_at: '',
+    })
+    renderDelivery(ownerSession)
+    await screen.findByText('Ahmed Benali')
+    expect(screen.getAllByRole('button', { name: /Encaisser et livrer/ }).length).toBeGreaterThanOrEqual(1)
   })
 })

@@ -9,6 +9,11 @@ function rowToSettings(row: {
   show_delivery_note: number
   show_phone_on_receipt: number
   show_quantity_on_receipt: number
+  receipt_width_mm: number
+  receipt_height_mm: number | null
+  receipt_font_scale: number
+  employees_see_delivered: number
+  employees_can_collect_deliver: number
 }): ReceiptSettings {
   return {
     id: 1,
@@ -19,6 +24,11 @@ function rowToSettings(row: {
     show_delivery_note: Boolean(row.show_delivery_note),
     show_phone_on_receipt: Boolean(row.show_phone_on_receipt),
     show_quantity_on_receipt: Boolean(row.show_quantity_on_receipt),
+    receipt_width_mm: row.receipt_width_mm,
+    receipt_height_mm: row.receipt_height_mm,
+    receipt_font_scale: row.receipt_font_scale,
+    employees_see_delivered: Boolean(row.employees_see_delivered),
+    employees_can_collect_deliver: Boolean(row.employees_can_collect_deliver),
     updated_at: '',
   }
 }
@@ -34,6 +44,11 @@ export function getReceiptSettings(db: Database): ReceiptSettings {
     show_delivery_note: number
     show_phone_on_receipt: number
     show_quantity_on_receipt: number
+    receipt_width_mm: number
+    receipt_height_mm: number | null
+    receipt_font_scale: number
+    employees_see_delivered: number
+    employees_can_collect_deliver: number
   }
   return rowToSettings(row)
 }
@@ -48,6 +63,11 @@ export function updateReceiptSettings(
     showPhoneOnReceipt: boolean
     showQuantityOnReceipt: boolean
     dimensionPresets: string[]
+    receiptWidthMm?: number
+    receiptHeightMm?: number | null
+    receiptFontScale?: number
+    employeesSeeDelivered?: boolean
+    employeesCanCollectDeliver?: boolean
   },
 ): void {
   db.prepare(
@@ -59,6 +79,11 @@ export function updateReceiptSettings(
       show_delivery_note = ?,
       show_phone_on_receipt = ?,
       show_quantity_on_receipt = ?,
+      receipt_width_mm = ?,
+      receipt_height_mm = ?,
+      receipt_font_scale = ?,
+      employees_see_delivered = ?,
+      employees_can_collect_deliver = ?,
       updated_at = ?
      WHERE id = 1`,
   ).run(
@@ -69,6 +94,11 @@ export function updateReceiptSettings(
     input.showDeliveryNote ? 1 : 0,
     input.showPhoneOnReceipt ? 1 : 0,
     input.showQuantityOnReceipt ? 1 : 0,
+    input.receiptWidthMm ?? 80,
+    input.receiptHeightMm ?? null,
+    input.receiptFontScale ?? 1,
+    input.employeesSeeDelivered ? 1 : 0,
+    input.employeesCanCollectDeliver ? 1 : 0,
     new Date().toISOString(),
   )
 }

@@ -119,6 +119,11 @@ export type ReceiptSettings = {
   show_delivery_note: boolean
   show_phone_on_receipt: boolean
   show_quantity_on_receipt: boolean
+  receipt_width_mm?: number
+  receipt_height_mm?: number | null
+  receipt_font_scale?: number
+  employees_see_delivered?: boolean
+  employees_can_collect_deliver?: boolean
   updated_at: string
 }
 

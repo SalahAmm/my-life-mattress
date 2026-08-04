@@ -50,4 +50,101 @@ describe('receipt settings', () => {
     })
     expect(getReceiptSettings(db).dimension_presets).toEqual(['90x190', '160x190', '180x200', '200x200'])
   })
+
+  it('migration v6: receipt format defaults to 80mm, auto height, normal text', () => {
+    const db = createDatabase(':memory:')
+    const settings = getReceiptSettings(db)
+    expect(settings.receipt_width_mm).toBe(80)
+    expect(settings.receipt_height_mm).toBeNull()
+    expect(settings.receipt_font_scale).toBe(1)
+  })
+
+  it('round-trips customized receipt format settings', () => {
+    const db = createDatabase(':memory:')
+    updateReceiptSettings(db, {
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      logoPath: null,
+      dimensionPresets: [],
+      receiptWidthMm: 58,
+      receiptHeightMm: 300,
+      receiptFontScale: 1.2,
+    })
+    const settings = getReceiptSettings(db)
+    expect(settings.receipt_width_mm).toBe(58)
+    expect(settings.receipt_height_mm).toBe(300)
+    expect(settings.receipt_font_scale).toBe(1.2)
+  })
+
+  it('stores a null height back as auto', () => {
+    const db = createDatabase(':memory:')
+    updateReceiptSettings(db, {
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      logoPath: null,
+      dimensionPresets: [],
+      receiptWidthMm: 100,
+      receiptHeightMm: 250,
+      receiptFontScale: 1,
+    })
+    updateReceiptSettings(db, {
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      logoPath: null,
+      dimensionPresets: [],
+      receiptWidthMm: 100,
+      receiptHeightMm: null,
+    })
+    expect(getReceiptSettings(db).receipt_height_mm).toBeNull()
+    expect(getReceiptSettings(db).receipt_width_mm).toBe(100)
+  })
+
+  it('migration v7: employees cannot see delivered orders by default', () => {
+    const db = createDatabase(':memory:')
+    expect(getReceiptSettings(db).employees_see_delivered).toBe(false)
+  })
+
+  it('migration v8: employees can collect and deliver by default', () => {
+    const db = createDatabase(':memory:')
+    expect(getReceiptSettings(db).employees_can_collect_deliver).toBe(true)
+  })
+
+  it('round-trips the employees_see_delivered flag', () => {
+    const db = createDatabase(':memory:')
+    updateReceiptSettings(db, {
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      logoPath: null,
+      dimensionPresets: [],
+      employeesSeeDelivered: true,
+    })
+    expect(getReceiptSettings(db).employees_see_delivered).toBe(true)
+  })
+
+  it('round-trips the employees_can_collect_deliver flag', () => {
+    const db = createDatabase(':memory:')
+    updateReceiptSettings(db, {
+      storeName: 'My Life Mattress',
+      defaultDepositPercentages: [30],
+      showDeliveryNote: true,
+      showPhoneOnReceipt: true,
+      showQuantityOnReceipt: true,
+      logoPath: null,
+      dimensionPresets: [],
+      employeesCanCollectDeliver: false,
+    })
+    expect(getReceiptSettings(db).employees_can_collect_deliver).toBe(false)
+  })
 })

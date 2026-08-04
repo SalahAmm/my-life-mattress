@@ -12,11 +12,25 @@ const mockApi = {
   auth: { status: vi.fn(), setupOwner: vi.fn(), login: vi.fn(), logout: vi.fn(), recoverOwner: vi.fn() },
   products: { list: vi.fn().mockResolvedValue([]), listFull: vi.fn().mockResolvedValue([]), create: vi.fn(), deactivate: vi.fn() },
   suppliers: { list: vi.fn().mockResolvedValue([]), create: vi.fn() },
-  categories: { list: vi.fn().mockResolvedValue([]) },
+  categories: {
+    list: vi.fn().mockResolvedValue([]),
+    listAll: vi.fn().mockResolvedValue([
+      { id: 1, name: 'Matelas', sort_order: 0, active: true },
+      { id: 2, name: 'Sommier', sort_order: 1, active: false },
+    ]),
+    create: vi.fn().mockResolvedValue(3),
+    rename: vi.fn().mockResolvedValue(undefined),
+    setActive: vi.fn().mockResolvedValue(undefined),
+  },
   sales: { create: vi.fn(), get: vi.fn(), recent: vi.fn(), addPayment: vi.fn(), setStatus: vi.fn(), cancel: vi.fn() },
-  printing: { printReceipt: vi.fn(), printInBrowser: vi.fn(), printReport: vi.fn(), printReportInBrowser: vi.fn() },
+  printing: {
+    printReceipt: vi.fn(),
+    testPrint: vi.fn().mockResolvedValue({ success: true }),
+    printReport: vi.fn(),
+  },
   reports: { summary: vi.fn(), sales: vi.fn() },
   files: { saveCsv: vi.fn(), backupDatabase: vi.fn(), restoreDatabase: vi.fn() },
+  data: { deleteAll: vi.fn().mockResolvedValue(undefined) },
   users: {
     list: vi.fn().mockResolvedValue([
       { id: 1, username: 'Kamel', role: 'owner', active: 1, created_at: '' },
@@ -32,6 +46,7 @@ const mockApi = {
       store_name: 'My Life Mattress',
       logo_path: null,
       default_deposit_percentages: [30, 50, 70],
+      dimension_presets: ['90x190', '160x190', '180x200'],
       show_delivery_note: true,
       show_phone_on_receipt: true,
       show_quantity_on_receipt: true,
@@ -115,16 +130,187 @@ describe('SettingsPage receipt appearance editor', () => {
     await waitFor(() => expect(mockApi.settings.uploadLogo).toHaveBeenCalled())
   })
 
-  it('renders all seven tabs; Reçu, Produits & Catégories, Utilisateurs and Données enabled', async () => {
+  it('renders all seven enabled tabs', async () => {
     renderSettings()
     await screen.findByTitle('Aperçu du reçu')
     for (const tab of ['Général', 'Produits & Catégories', 'Paiement', 'Reçu', 'Imprimante', 'Utilisateurs', 'Données']) {
       const trigger = screen.getByRole('tab', { name: tab })
       expect(trigger).toBeInTheDocument()
-      if (tab === 'Général' || tab === 'Paiement' || tab === 'Imprimante') {
-        expect(trigger).toHaveAttribute('data-disabled')
-      }
+      expect(trigger).not.toHaveAttribute('data-disabled')
     }
+  })
+})
+
+describe('SettingsPage general tab', () => {
+  it('saves the store name', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Général' }))
+    const input = await screen.findByLabelText(/Nom du magasin/)
+    await user.clear(input)
+    await user.type(input, 'My Life Mattress Alger')
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as { storeName: string }
+    expect(call.storeName).toBe('My Life Mattress Alger')
+  })
+
+  it('enables employee delivery history via the toggle', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Général' }))
+    await user.click(await screen.findByRole('checkbox', { name: /Les employés peuvent voir l'historique des livraisons/ }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      employeesSeeDelivered: boolean
+    }
+    expect(call.employeesSeeDelivered).toBe(true)
+  })
+
+  it('restricts employee collect-and-deliver via the toggle', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Général' }))
+    await user.click(await screen.findByRole('checkbox', { name: /Les employés peuvent encaisser et livrer/ }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      employeesCanCollectDeliver: boolean
+    }
+    expect(call.employeesCanCollectDeliver).toBe(false)
+  })
+})
+
+describe('SettingsPage payment tab', () => {
+  it('adds a deposit percentage preset', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Paiement' }))
+    const input = await screen.findByPlaceholderText('Ex. : 50')
+    await user.type(input, '25')
+    await user.click(screen.getByRole('button', { name: 'Enregistrer' }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      defaultDepositPercentages: number[]
+    }
+    expect(call.defaultDepositPercentages).toEqual([25, 30, 50, 70])
+  })
+
+  it('removes a deposit percentage preset', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Paiement' }))
+    await user.click(await screen.findByRole('button', { name: /Supprimer 50%/ }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      defaultDepositPercentages: number[]
+    }
+    expect(call.defaultDepositPercentages).toEqual([30, 70])
+  })
+})
+
+describe('SettingsPage printer tab', () => {
+  it('sends a test print', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Imprimante' }))
+    await user.click(await screen.findByRole('button', { name: /Imprimer un reçu test/ }))
+    await waitFor(() => expect(mockApi.printing.testPrint).toHaveBeenCalled())
+  })
+})
+
+describe('SettingsPage receipt format', () => {
+  it('saves the width preset 58 mm', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await screen.findByTitle('Aperçu du reçu')
+    await user.click(screen.getByRole('button', { name: '58 mm' }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      receiptWidthMm: number
+    }
+    expect(call.receiptWidthMm).toBe(58)
+  })
+
+  it('saves the Grand font size as scale 1.2', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await screen.findByTitle('Aperçu du reçu')
+    await user.click(screen.getByRole('button', { name: 'Grand' }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      receiptFontScale: number
+    }
+    expect(call.receiptFontScale).toBe(1.2)
+  })
+
+  it('enables a fixed height via the checkbox', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await screen.findByTitle('Aperçu du reçu')
+    await user.click(screen.getByRole('checkbox', { name: /Hauteur fixe/ }))
+    await waitFor(() => expect(mockApi.settings.updateReceipt).toHaveBeenCalled())
+    const call = vi.mocked(mockApi.settings.updateReceipt).mock.calls.at(-1)![0] as {
+      receiptHeightMm: number | null
+    }
+    expect(call.receiptHeightMm).toBe(300)
+  })
+})
+
+describe('SettingsPage categories', () => {
+  it('lists active and inactive categories with status badges', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Produits & Catégories' }))
+    expect(await screen.findByText('Matelas')).toBeInTheDocument()
+    expect(screen.getByText('Sommier')).toBeInTheDocument()
+    expect(screen.getByText('Active')).toBeInTheDocument()
+    expect(screen.getByText('Désactivé')).toBeInTheDocument()
+    void user
+  })
+
+  it('creates a category', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Produits & Catégories' }))
+    const input = await screen.findByPlaceholderText('Ex. : Oreillers')
+    await user.type(input, 'Oreillers')
+    await user.click(screen.getByRole('button', { name: 'Ajouter' }))
+    await waitFor(() => expect(mockApi.categories.create).toHaveBeenCalledWith({ name: 'Oreillers' }))
+  })
+
+  it('renames a category inline', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Produits & Catégories' }))
+    const matelasRow = await screen.findByRole('row', { name: /Matelas/ })
+    await user.click(within(matelasRow).getByRole('button', { name: /Renommer/ }))
+    const editInput = within(matelasRow).getByRole('textbox')
+    await user.clear(editInput)
+    await user.type(editInput, 'Matelas Premium')
+    await user.click(within(matelasRow).getByRole('button', { name: /Enregistrer/ }))
+    await waitFor(() => expect(mockApi.categories.rename).toHaveBeenCalledWith({ id: 1, name: 'Matelas Premium' }))
+  })
+
+  it('deactivates a category after confirmation', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Produits & Catégories' }))
+    const matelasRow = await screen.findByRole('row', { name: /Matelas/ })
+    await user.click(within(matelasRow).getByRole('button', { name: /Retirer/ }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: /Retirer/ }))
+    await waitFor(() => expect(mockApi.categories.setActive).toHaveBeenCalledWith({ id: 1, active: false }))
+  })
+
+  it('reactivates an inactive category', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Produits & Catégories' }))
+    const sommierRow = await screen.findByRole('row', { name: /Sommier/ })
+    await user.click(within(sommierRow).getByRole('button', { name: /Réactiver/ }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: /Réactiver/ }))
+    await waitFor(() => expect(mockApi.categories.setActive).toHaveBeenCalledWith({ id: 2, active: true }))
   })
 })
 
@@ -146,6 +332,19 @@ describe('SettingsPage data tab (ticket 02)', () => {
     await user.click(await screen.findByRole('button', { name: /Restaurer/ }))
     await waitFor(() => expect(mockApi.files.restoreDatabase).toHaveBeenCalled())
     expect(await screen.findByText(/redémarrez l'application/i)).toBeInTheDocument()
+  })
+
+  it('deletes all data only after the owner password is confirmed', async () => {
+    renderSettings()
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('tab', { name: 'Données' }))
+    await user.click(await screen.findByRole('button', { name: /Supprimer toutes les données/ }))
+    const dialog = await screen.findByRole('dialog')
+    const confirm = within(dialog).getByRole('button', { name: /Tout supprimer/ })
+    expect(confirm).toBeDisabled()
+    await user.type(within(dialog).getByLabelText(/Mot de passe du propriétaire/), 'kamel123')
+    await user.click(confirm)
+    await waitFor(() => expect(mockApi.data.deleteAll).toHaveBeenCalledWith('kamel123'))
   })
 })
 

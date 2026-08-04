@@ -204,7 +204,13 @@ export function StockPage() {
     const query = search.trim().toLowerCase()
     const matches = (p: ProductWithVariants) => {
       if (selectedSupplier !== null && p.supplier_id !== selectedSupplier) return false
-      if (selectedCategory !== null && p.category_id !== selectedCategory) return false
+      if (selectedCategory !== null) {
+        if (selectedCategory === -1) {
+          if (p.category_id !== null) return false
+        } else if (p.category_id !== selectedCategory) {
+          return false
+        }
+      }
       if (!query) return true
       if (p.name.toLowerCase().includes(query)) return true
       if ((p.supplier_name ?? '').toLowerCase().includes(query)) return true
@@ -332,6 +338,14 @@ export function StockPage() {
             {c.name}
           </Chip>
         ))}
+        {products.some((p) => p.category_id === null) && (
+          <Chip
+            active={selectedCategory === -1}
+            onClick={() => setSelectedCategory(selectedCategory === -1 ? null : -1)}
+          >
+            {t('stock.uncategorized')}
+          </Chip>
+        )}
       </div>
       {products.length === 0 ? (
         <Card className="flex flex-1 flex-col items-center justify-center">

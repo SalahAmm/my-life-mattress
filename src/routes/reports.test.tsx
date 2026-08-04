@@ -37,7 +37,7 @@ const mockApi = {
   suppliers: { list: vi.fn().mockResolvedValue([]), create: vi.fn(), setActive: vi.fn() },
   categories: { list: vi.fn().mockResolvedValue([]) },
   sales: { create: vi.fn(), get: vi.fn(), recent: vi.fn(), list: vi.fn().mockResolvedValue([]), addPayment: vi.fn(), setStatus: vi.fn(), cancel: vi.fn() },
-  printing: { printReceipt: vi.fn(), printInBrowser: vi.fn() },
+  printing: { printReceipt: vi.fn() },
   settings: {
     get: vi.fn().mockResolvedValue({
       id: 1,

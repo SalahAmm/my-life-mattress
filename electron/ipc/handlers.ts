@@ -8,7 +8,15 @@ import { AppError } from '@shared/types'
 import type { IpcResult } from '@shared/ipc'
 import type { AuthService } from '../auth/service'
 import { logError } from '../log'
-import { listActiveCategories } from '../db/queries/categories'
+import {
+  createCategory,
+  listActiveCategories,
+  listAllCategories,
+  nextCategorySortOrder,
+  reactivateCategory,
+  renameCategory,
+  tryDeactivateCategory,
+} from '../db/queries/categories'
 import { listCounterProducts, createProduct, deactivateProduct, listProducts, listTopSellers, updateProduct } from '../db/queries/products'
 import { createSupplier, listSuppliers, setSupplierActive } from '../db/queries/suppliers'
 import { adjustStock, listMovementsForVariant, restock } from '../db/queries/stock'
@@ -31,11 +39,13 @@ import {
   setUserActive,
   updateUserPassword,
 } from '../db/queries/users'
-import { hashPassword } from '../auth/password'
+import { hashPassword, verifyPassword } from '../auth/password'
+import { findUserByUsername } from '../db/queries/users'
+import { wipeAllBusinessData } from '../db/queries/wipe'
 import { backupDatabaseTo, stageRestoreFile } from '../db/backup'
 import { getReceiptSettings, updateReceiptSettings } from '../db/queries/receipt-settings'
 import { reportSummary } from '../db/queries/reports'
-import { printInBrowser, printReceipt, printReport, printReportInBrowser, receiptHtmlForSale } from '../printing'
+import { printReceipt, printReport, printTestReceipt } from '../printing'
 
 type Handler<TInput, TOutput> = (args: {
   auth: AuthService
@@ -75,6 +85,17 @@ export function requireOwner(auth: AuthService): Session {
     throw new AppError('UNAUTHORIZED', 'Owner role required')
   }
   return session
+}
+
+export function effectiveListStatus(
+  role: Session['role'],
+  requested: 'ordered' | 'delivered' | 'cancelled' | undefined,
+  employeesSeeDelivered: boolean,
+): 'ordered' | 'delivered' | 'cancelled' | undefined {
+  if (role === 'employee' && !employeesSeeDelivered) {
+    return 'ordered'
+  }
+  return requested
 }
 
 export const SALE_SCHEMA = z.object({
@@ -173,6 +194,11 @@ export const SETTINGS_SCHEMA = z.object({
     .min(0)
     .max(20)
     .refine((values) => new Set(values).size === values.length, { message: 'Duplicate presets' }),
+  receiptWidthMm: z.number().int().min(40).max(210).optional(),
+  receiptHeightMm: z.number().int().min(40).max(500).nullable().optional(),
+  receiptFontScale: z.number().min(0.6).max(2).optional(),
+  employeesSeeDelivered: z.boolean().optional(),
+  employeesCanCollectDeliver: z.boolean().optional(),
 })
 
 const PAYMENT_SCHEMA = z.object({
@@ -290,6 +316,59 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     return listActiveCategories(db)
   }))
 
+  ipcMain.handle('categories:listAll', wrap(async () => {
+    requireOwner(auth)
+    return listAllCategories(db)
+  }))
+
+  ipcMain.handle('categories:create', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z.object({ name: z.string().trim().min(1).max(50) }).safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    const name = parsed.data.name
+    const duplicate = listAllCategories(db).some((c) => c.name.toLowerCase() === name.toLowerCase())
+    if (duplicate) {
+      throw new AppError('VALIDATION_ERROR', 'DUPLICATE_CATEGORY')
+    }
+    return createCategory(db, { name, sortOrder: nextCategorySortOrder(db) })
+  }))
+
+  ipcMain.handle('categories:rename', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z
+      .object({ id: z.number().int().positive(), name: z.string().trim().min(1).max(50) })
+      .safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    const duplicate = listAllCategories(db).some(
+      (c) => c.id !== parsed.data.id && c.name.toLowerCase() === parsed.data.name.toLowerCase(),
+    )
+    if (duplicate) {
+      throw new AppError('VALIDATION_ERROR', 'DUPLICATE_CATEGORY')
+    }
+    renameCategory(db, parsed.data.id, parsed.data.name)
+  }))
+
+  ipcMain.handle('categories:setActive', wrap(async ({ payload }) => {
+    requireOwner(auth)
+    const parsed = z
+      .object({ id: z.number().int().positive(), active: z.boolean() })
+      .safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    if (parsed.data.active) {
+      reactivateCategory(db, parsed.data.id)
+      return
+    }
+    if (!tryDeactivateCategory(db, parsed.data.id)) {
+      throw new AppError('VALIDATION_ERROR', 'LAST_CATEGORY')
+    }
+  }))
+
   ipcMain.handle('stock:restock', wrap(async ({ payload }) => {
     const session = requireOwner(auth)
     const parsed = z
@@ -343,18 +422,22 @@ export function registerIpcHandlers(database: Database, authService: AuthService
   }))
 
   ipcMain.handle('sales:list', wrap(async ({ payload }) => {
-    requireSession(auth)
+    const session = requireSession(auth)
     const parsed = z
       .object({ status: z.enum(['ordered', 'delivered', 'cancelled']).optional() })
       .safeParse(payload ?? {})
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
     }
-    return listSales(db, { status: parsed.data.status })
+    const status = effectiveListStatus(session.role, parsed.data.status, getReceiptSettings(db).employees_see_delivered ?? false)
+    return listSales(db, { status })
   }))
 
   ipcMain.handle('sales:addPayment', wrap(async ({ payload }) => {
-    requireSession(auth)
+    const session = requireSession(auth)
+    if (session.role === 'employee' && !(getReceiptSettings(db).employees_can_collect_deliver ?? true)) {
+      throw new AppError('UNAUTHORIZED', 'Employés ne peuvent pas encaisser')
+    }
     const parsed = PAYMENT_SCHEMA.safeParse(payload)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
@@ -363,10 +446,17 @@ export function registerIpcHandlers(database: Database, authService: AuthService
   }))
 
   ipcMain.handle('sales:setStatus', wrap(async ({ payload }) => {
-    requireSession(auth)
+    const session = requireSession(auth)
     const parsed = z.object({ saleId: z.number().int().positive(), status: z.enum(['ordered', 'delivered', 'cancelled']) }).safeParse(payload)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    if (
+      session.role === 'employee' &&
+      !(getReceiptSettings(db).employees_can_collect_deliver ?? true) &&
+      parsed.data.status === 'delivered'
+    ) {
+      throw new AppError('UNAUTHORIZED', 'Employés ne peuvent pas livrer')
     }
     setSaleStatus(db, parsed.data.saleId, parsed.data.status)
   }))
@@ -395,10 +485,9 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     return printReceipt(db, saleId)
   }))
 
-  ipcMain.handle('printing:printInBrowser', wrap(async ({ payload }) => {
-    requireSession(auth)
-    const saleId = z.number().int().positive().parse(payload)
-    return printInBrowser(receiptHtmlForSale(db, saleId), `Ticket ${saleId}`)
+  ipcMain.handle('printing:testPrint', wrap(async () => {
+    requireOwner(auth)
+    return printTestReceipt(db)
   }))
 
   ipcMain.handle('printing:printReport', wrap(async ({ payload }) => {
@@ -408,15 +497,6 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
     }
     return printReport(db, parsed.data.range, parsed.data.rangeLabel)
-  }))
-
-  ipcMain.handle('printing:printReportInBrowser', wrap(async ({ payload }) => {
-    requireOwner(auth)
-    const parsed = z.object({ range: z.object({ from: z.string().min(1), to: z.string().min(1) }), rangeLabel: z.string().min(1) }).safeParse(payload)
-    if (!parsed.success) {
-      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
-    }
-    return printReportInBrowser(db, parsed.data.range, parsed.data.rangeLabel)
   }))
 
   ipcMain.handle('files:saveCsv', wrap(async ({ payload }) => {
@@ -469,6 +549,19 @@ export function registerIpcHandlers(database: Database, authService: AuthService
     return { requiresRestart: true }
   }))
 
+  ipcMain.handle('data:deleteAll', wrap(async ({ payload }) => {
+    const session = requireOwner(auth)
+    const parsed = z.object({ password: z.string().min(1).max(200) }).safeParse(payload)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', parsed.error.issues[0].message)
+    }
+    const user = findUserByUsername(db, session.username)
+    if (!user || !(await verifyPassword(parsed.data.password, user.password_hash))) {
+      throw new AppError('INVALID_CREDENTIALS', 'Mot de passe incorrect')
+    }
+    wipeAllBusinessData(db)
+  }))
+
   ipcMain.handle('settings:get', wrap(async () => {
     requireSession(auth)
     return getReceiptSettings(db)
@@ -487,6 +580,11 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       showPhoneOnReceipt: parsed.data.showPhoneOnReceipt,
       showQuantityOnReceipt: parsed.data.showQuantityOnReceipt,
       dimensionPresets: parsed.data.dimensionPresets,
+      receiptWidthMm: parsed.data.receiptWidthMm,
+      receiptHeightMm: parsed.data.receiptHeightMm,
+      receiptFontScale: parsed.data.receiptFontScale,
+      employeesSeeDelivered: parsed.data.employeesSeeDelivered,
+      employeesCanCollectDeliver: parsed.data.employeesCanCollectDeliver,
       logoPath: getReceiptSettings(db).logo_path,
     })
   }))
@@ -515,6 +613,11 @@ export function registerIpcHandlers(database: Database, authService: AuthService
       showPhoneOnReceipt: current.show_phone_on_receipt,
       showQuantityOnReceipt: current.show_quantity_on_receipt,
       dimensionPresets: current.dimension_presets,
+      receiptWidthMm: current.receipt_width_mm,
+      receiptHeightMm: current.receipt_height_mm,
+      receiptFontScale: current.receipt_font_scale,
+      employeesSeeDelivered: current.employees_see_delivered,
+      employeesCanCollectDeliver: current.employees_can_collect_deliver,
       logoPath: target,
     })
     return target

@@ -260,3 +260,25 @@ describe('receipt template', () => {
     expect(html).toContain('فرشة سرير 170x200')
   })
 })
+
+describe('receipt format settings', () => {
+  it('defaults to 80mm wide, auto height and normal text', () => {
+    const html = render()
+    expect(html).toContain('@page { size: 80mm auto; margin: 0; }')
+    expect(html).toContain('width: 80mm;')
+    expect(html).toContain('font-size: 11px;')
+  })
+
+  it('applies a custom width, fixed height and font scale', () => {
+    const html = render({}, { receipt_width_mm: 58, receipt_height_mm: 300, receipt_font_scale: 1.2 })
+    expect(html).toContain('@page { size: 58mm 300mm; margin: 0; }')
+    expect(html).toContain('width: 58mm;')
+    expect(html).toContain('font-size: 13px;')
+    expect(html).toContain('.store-name { font-size: 18px;')
+  })
+
+  it('scales the receipt text down for the small preset', () => {
+    const html = render({}, { receipt_font_scale: 0.85 })
+    expect(html).toContain('font-size: 9px;')
+  })
+})

@@ -233,8 +233,6 @@ export function ReportsPage({ session }: { session: Session }) {
           onPrint={() => api.printing.printReport(range, rangeLabel)}
           printing={false}
           printError={null}
-          browserPrintLabel={t('counter.printBrowser')}
-          onBrowserPrint={() => api.printing.printReportInBrowser(range, rangeLabel)}
         />
       )}
       <Dialog open={csvOpen} onOpenChange={setCsvOpen}>

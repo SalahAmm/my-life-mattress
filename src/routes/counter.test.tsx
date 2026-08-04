@@ -50,7 +50,7 @@ const mockApi = {
   suppliers: { list: vi.fn().mockResolvedValue([]), create: vi.fn(), setActive: vi.fn() },
   categories: { list: vi.fn().mockResolvedValue([{ id: 1, name: 'Matelas', sort_order: 0, active: true }]) },
   sales: { create: vi.fn(), get: vi.fn(), recent: vi.fn(), addPayment: vi.fn(), setStatus: vi.fn(), cancel: vi.fn() },
-  printing: { printReceipt: vi.fn().mockResolvedValue({ success: true }), printInBrowser: vi.fn().mockResolvedValue({ success: true }) },
+  printing: { printReceipt: vi.fn().mockResolvedValue({ success: true }) },
   settings: {
     get: vi.fn().mockResolvedValue({
       id: 1,
@@ -207,12 +207,29 @@ describe('CounterPage redesign (ticket 02)', () => {
     expect(screen.getAllByText('22 500 DZD').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('disables the save button with an empty cart', async () => {
+  it('shows only the full-height empty cart card with an empty cart', async () => {
     renderCounter()
     await screen.findByRole('button', { name: 'Matelas' })
+    expect(screen.getByText('Panier vide')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Nom du client')).not.toBeInTheDocument()
     const buttons = [...document.querySelectorAll('button')]
-    const saveButton = buttons.find((b) => b.textContent?.trim() === 'Enregistrer')
-    expect(saveButton?.hasAttribute('disabled')).toBe(true)
+    expect(buttons.some((b) => b.textContent?.trim() === 'Enregistrer')).toBe(false)
+  })
+
+  it('reveals the customer form after the first item is added', async () => {
+    renderCounter()
+    const user = await addVariant()
+    expect(await screen.findByLabelText('Nom du client')).toBeInTheDocument()
+    expect(screen.queryByText('Panier vide')).not.toBeInTheDocument()
+    void user
+  })
+
+  it('keeps the cart line and the customer form visible together', async () => {
+    renderCounter()
+    const user = await addVariant()
+    expect(await screen.findByText('160x190')).toBeInTheDocument()
+    expect(screen.getByLabelText('Nom du client')).toBeInTheDocument()
+    void user
   })
 
   it('saves the sale then shows the receipt preview and prints; Terminer resets', async () => {
@@ -278,10 +295,11 @@ describe('CounterPage redesign (ticket 02)', () => {
 
   it('Enregistrer carries the gold accent', async () => {
     renderCounter()
-    await screen.findByRole('button', { name: 'Matelas' })
+    const user = await addVariant()
     const buttons = [...document.querySelectorAll('button')]
     const saveButton = buttons.find((b) => b.textContent?.trim() === 'Enregistrer')
     expect(saveButton?.className).toMatch(/bg-accent/)
+    void user
   })
 
   it('custom dimension dialog captures name, dimension, price and note', async () => {
@@ -296,5 +314,42 @@ describe('CounterPage redesign (ticket 02)', () => {
     expect(screen.getByText(/Sahara.*170x200|170x200.*Sahara/)).toBeInTheDocument()
     expect(screen.getByText(/commande spéciale/)).toBeInTheDocument()
     expect(screen.getByText('Personnalisé')).toBeInTheDocument()
+  })
+})
+
+describe('CounterPage checkout layout and uncategorized products', () => {
+  it('keeps the desktop checkout column at full height', async () => {
+    renderCounter()
+    const column = await screen.findByTestId('checkout-column')
+    expect(column.className).toContain('h-full')
+    expect(column.className).toContain('min-h-0')
+  })
+
+  it('shows an uncategorized tile when products have no category and filters to them', async () => {
+    vi.mocked(mockApi.products.list).mockResolvedValue([
+      {
+        id: 1,
+        name: 'Matelas Elite',
+        category_id: 1,
+        image_path: null,
+        variants: [
+          { id: 10, dimension: '160x190', name: null, price: 45000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
+        ],
+      },
+      {
+        id: 3,
+        name: 'Oreiller Solo',
+        category_id: null,
+        image_path: null,
+        variants: [
+          { id: 30, dimension: '40x60', name: null, price: 3000, out_of_stock: false, low_stock: false, available_low: null, available_above: 3 },
+        ],
+      },
+    ])
+    renderCounter()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Sans catégorie' }))
+    expect(screen.getByRole('button', { name: 'Oreiller Solo' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Matelas Elite' })).not.toBeInTheDocument()
   })
 })
