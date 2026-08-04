@@ -9,8 +9,6 @@ import { api } from '@/lib/ipc-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/management/page-header'
 import { EmptyState } from '@/components/management/empty-state'
@@ -26,7 +24,6 @@ export function DeliveryPage({ session }: { session: Session }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<DeliveryTab>('ordered')
-  const [collectSale, setCollectSale] = useState<SaleWithDetails | null>(null)
   const [deliverSale, setDeliverSale] = useState<SaleWithDetails | null>(null)
 
   const { data: allSales = [] } = useQuery({
@@ -51,17 +48,6 @@ export function DeliveryPage({ session }: { session: Session }) {
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['delivery-sales'] })
   }
-
-  const collectMutation = useMutation({
-    mutationFn: (input: { saleId: number; amount: number }) =>
-      api.sales.addPayment({ saleId: input.saleId, amount: input.amount, type: 'balance', enteredAsPercentage: null }),
-    onSuccess: () => {
-      invalidate()
-      toast.success(t('delivery.paymentAdded'))
-      setCollectSale(null)
-    },
-    onError: (error: Error) => toast.error(error.message),
-  })
 
   const deliverMutation = useMutation({
     mutationFn: async (sale: SaleWithDetails) => {
@@ -120,7 +106,6 @@ export function DeliveryPage({ session }: { session: Session }) {
                   <OrderCard
                     key={sale.id}
                     sale={sale}
-                    onCollect={() => setCollectSale(sale)}
                     onDeliver={() => setDeliverSale(sale)}
                   />
                 ))}
@@ -130,14 +115,6 @@ export function DeliveryPage({ session }: { session: Session }) {
         </div>
       )}
 
-      {collectSale && (
-        <CollectDialog
-          sale={collectSale}
-          onClose={() => setCollectSale(null)}
-          onConfirm={(amount) => collectMutation.mutate({ saleId: collectSale.id, amount })}
-          submitting={collectMutation.isPending}
-        />
-      )}
       {deliverSale && (
         <DeliverDialog
           sale={deliverSale}
@@ -150,15 +127,7 @@ export function DeliveryPage({ session }: { session: Session }) {
   )
 }
 
-function OrderCard({
-  sale,
-  onCollect,
-  onDeliver,
-}: {
-  sale: SaleWithDetails
-  onCollect: () => void
-  onDeliver: () => void
-}) {
+function OrderCard({ sale, onDeliver }: { sale: SaleWithDetails; onDeliver: () => void }) {
   const { t } = useTranslation()
   return (
     <Card>
@@ -171,127 +140,80 @@ function OrderCard({
             status={sale.status === 'delivered' ? 'success' : sale.status === 'cancelled' ? 'destructive' : 'warning'}
             label={t(`delivery.status.${sale.status}`)}
           />
-          <span className="text-xs text-muted-foreground" dir="ltr">
+          <span className="ms-auto text-xs text-muted-foreground" dir="ltr">
             {new Date(sale.created_at).toLocaleDateString('fr-FR')}
           </span>
         </div>
-        <div>
-          <p className="font-semibold" dir="auto">
-            {sale.customer_name}
-          </p>
-          {sale.customer_phone && (
-            <p className="text-sm text-muted-foreground" dir="ltr">
-              {sale.customer_phone}
-            </p>
-          )}
-          {sale.delivery_address && (
-            <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground" dir="auto">
-              <MapPin className="size-3.5" />
-              {sale.delivery_address}
-            </p>
-          )}
-        </div>
-        <div className="space-y-1 border-y py-2 text-sm">
-          {sale.items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between gap-2">
-              <span className="min-w-0 truncate" dir="auto">
-                {item.product_variant_id != null
-                  ? `${item.product_name ?? ''} ${variantLabel(item.variant_name, item.dimension)}`.trim()
-                  : item.custom_description}
-              </span>
-              <span className="shrink-0 text-muted-foreground" dir="ltr">
-                ×{item.quantity} {formatDzd(item.quantity * item.unit_price_at_sale)}
-              </span>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1 space-y-2">
+            <div>
+              <p className="text-base font-bold" dir="auto">
+                {sale.customer_name}
+              </p>
+              {sale.customer_phone && (
+                <p className="text-sm text-muted-foreground" dir="ltr">
+                  {sale.customer_phone}
+                  {sale.wilaya ? ` · ${sale.wilaya}` : ''}
+                </p>
+              )}
+              {sale.delivery_address && (
+                <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground" dir="auto">
+                  <MapPin className="size-3.5" />
+                  {sale.delivery_address}
+                </p>
+              )}
             </div>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <div className="space-y-0.5">
-            <div className="flex justify-between gap-6">
-              <span className="text-muted-foreground">{t('delivery.total')}</span>
-              <span dir="ltr">{formatDzd(sale.total)}</span>
-            </div>
-            <div className="flex justify-between gap-6">
-              <span className="text-muted-foreground">{t('delivery.paid')}</span>
-              <span className="font-medium text-success" dir="ltr">
-                {formatDzd(sale.paid)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-6 text-base font-bold">
-              <span>{t('delivery.due')}</span>
-              <span className={cn(sale.remaining > 0 && 'text-destructive')} dir="ltr">
-                {formatDzd(sale.remaining)}
-              </span>
+            <div className="space-y-1 border-t pt-2 text-sm text-muted-foreground">
+              {sale.items.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate" dir="auto">
+                    {item.product_variant_id != null
+                      ? `${item.product_name ?? ''} ${variantLabel(item.variant_name, item.dimension)}`.trim()
+                      : item.custom_description}
+                  </span>
+                  <span className="shrink-0" dir="ltr">
+                    ×{item.quantity} {formatDzd(item.quantity * item.unit_price_at_sale)}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {sale.status === 'ordered' && sale.remaining > 0 && (
-              <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={onCollect}>
-                <HandCoins />
-                {t('delivery.collectBalance')}
-              </Button>
-            )}
-            {sale.status === 'ordered' && (
-              <Button size="sm" variant="outline" onClick={onDeliver}>
-                <CheckCircle2 />
-                {t('delivery.markDelivered')}
-              </Button>
-            )}
+          <div className="shrink-0 text-end">
+            <p className="text-xs font-semibold text-muted-foreground">{t('delivery.due')}</p>
+            <p
+              className={cn('text-3xl font-black', sale.remaining > 0 ? 'text-destructive' : 'text-success')}
+              dir="ltr"
+            >
+              {formatDzd(sale.remaining)}
+            </p>
+            <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+              <p>
+                {t('delivery.total')} <span dir="ltr">{formatDzd(sale.total)}</span>
+              </p>
+              <p>
+                {t('delivery.paid')}{' '}
+                <span className="font-medium text-success" dir="ltr">
+                  {formatDzd(sale.paid)}
+                </span>
+              </p>
+            </div>
           </div>
         </div>
+        {sale.status === 'ordered' && (
+          <div className="flex justify-end border-t pt-3">
+            <Button
+              size="sm"
+              variant={sale.remaining > 0 ? 'default' : 'outline'}
+              className={sale.remaining > 0 ? 'bg-accent text-accent-foreground hover:bg-accent/90' : ''}
+              onClick={onDeliver}
+            >
+              <CheckCircle2 />
+              {sale.remaining > 0 ? t('delivery.collectAndDeliver') : t('delivery.markDelivered')}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
-  )
-}
-
-function CollectDialog({
-  sale,
-  onClose,
-  onConfirm,
-  submitting,
-}: {
-  sale: SaleWithDetails
-  onClose: () => void
-  onConfirm: (amount: number) => void
-  submitting: boolean
-}) {
-  const { t } = useTranslation()
-  const [amount, setAmount] = useState(String(sale.remaining))
-  return (
-    <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('delivery.collectTitle')}</DialogTitle>
-          <DialogDescription>{sale.customer_name}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <div className="flex justify-between rounded-none border bg-muted/50 px-3 py-2 text-sm">
-            <span>{t('delivery.due')}</span>
-            <span className="font-bold" dir="ltr">
-              {formatDzd(sale.remaining)}
-            </span>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="collect-amount">{t('delivery.amount')}</Label>
-            <Input
-              id="collect-amount"
-              dir="ltr"
-              inputMode="numeric"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
-              {t('common.cancel')}
-            </Button>
-            <Button disabled={submitting || Number(amount) <= 0} onClick={() => onConfirm(Number(amount))}>
-              {t('delivery.collect')}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
   )
 }
 

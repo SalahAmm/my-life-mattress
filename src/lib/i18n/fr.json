@@ -196,6 +196,7 @@
   "stock": {
     "title": "Stock",
     "product": "Produit",
+    "addedOn": "Ajouté le",
     "actions": "Actions",
     "stock": "Stock",
     "addProduct": "Ajouter un produit",

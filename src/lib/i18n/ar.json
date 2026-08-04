@@ -196,6 +196,7 @@
   "stock": {
     "title": "المخزون",
     "product": "المنتج",
+    "addedOn": "أُضيف في",
     "actions": "إجراءات",
     "stock": "المخزون",
     "addProduct": "إضافة منتج",

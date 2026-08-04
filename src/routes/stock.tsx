@@ -345,6 +345,9 @@ export function StockPage() {
                     </TableCell>
                     <TableCell className="font-medium" dir="auto">
                       {product.name}
+                      <p className="text-xs font-normal text-muted-foreground">
+                        {t('stock.addedOn')} {new Date(product.created_at).toLocaleDateString('fr-FR')}
+                      </p>
                     </TableCell>
                     <TableCell>{product.category_name ?? '—'}</TableCell>
                     <TableCell dir="auto">{product.supplier_name ?? '—'}</TableCell>

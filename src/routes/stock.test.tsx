@@ -19,6 +19,7 @@ const products: ProductWithVariants[] = [
     supplier_id: 1,
     supplier_name: 'Rafik',
     image_path: null,
+    created_at: '2026-07-15T10:00:00.000Z',
     active: true,
     variants: [
       { id: 10, product_id: 1, dimension: '160x190', price: 45000, sku: null, name: null, quantity_on_hand: 4, low_stock_threshold: 2, out_of_stock: false },
@@ -34,6 +35,7 @@ const products: ProductWithVariants[] = [
     supplier_id: null,
     supplier_name: null,
     image_path: null,
+    created_at: '2026-07-20T10:00:00.000Z',
     active: true,
     variants: [
       { id: 20, product_id: 2, dimension: '40x60', price: 3000, sku: null, name: null, quantity_on_hand: 3, low_stock_threshold: 1, out_of_stock: false },
@@ -90,6 +92,12 @@ function renderStock() {
 }
 
 describe('StockPage (ticket 08)', () => {
+  it('renders the product added date under the name', async () => {
+    renderStock()
+    const cell = (await screen.findAllByText('Matelas Elite'))[0].closest('td') as HTMLElement
+    expect(within(cell).getByText(/Ajouté le/)).toBeInTheDocument()
+  })
+
   it('shows KPI cards with live variant counts', async () => {
     renderStock()
     expect((await screen.findAllByText('Matelas Elite')).length).toBeGreaterThanOrEqual(1)

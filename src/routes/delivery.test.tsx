@@ -150,75 +150,64 @@ function renderDelivery(session: Session) {
   )
 }
 
-describe('DeliveryPage (ticket 03)', () => {
-  it('shows KPI cards, status tabs and orders grouped by wilaya', async () => {
+describe('DeliveryPage redesign', () => {
+  it('shows a large SOLDE DÛ hero with the remaining amount on unpaid orders', async () => {
+    renderDelivery(ownerSession)
+    const card = (await screen.findByText('Ahmed Benali')).closest('[data-slot="card"]') as HTMLElement
+    const hero = within(card).getByText('31 500 DZD')
+    expect(hero.className).toMatch(/text-destructive|text-2xl|text-3xl/)
+    expect(within(card).getByText(/Solde dû/)).toBeInTheDocument()
+  })
+
+  it('shows a green paid state on fully paid orders', async () => {
+    renderDelivery(ownerSession)
+    const card = (await screen.findByText('Sofiane Merbah')).closest('[data-slot="card"]') as HTMLElement
+    const hero = within(card).getByText('0 DZD')
+    expect(hero.className).toMatch(/text-success/)
+  })
+
+  it('shows one action button: Encaisser et livrer on unpaid orders', async () => {
+    renderDelivery(ownerSession)
+    await screen.findByText('Ahmed Benali')
+    expect(screen.getAllByRole('button', { name: /Encaisser et livrer/ }).length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByRole('button', { name: /Encaisser le Solde/ })).not.toBeInTheDocument()
+  })
+
+  it('shows Marquer comme livré on paid orders', async () => {
+    renderDelivery(ownerSession)
+    await screen.findByText('Sofiane Merbah')
+    expect(screen.getAllByRole('button', { name: /Marquer comme livré/i }).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('Encaisser et livrer collects the balance then marks delivered', async () => {
     renderDelivery(ownerSession)
     const user = userEvent.setup()
     await screen.findByText('Ahmed Benali')
-    await user.click(screen.getByRole('tab', { name: 'Toutes' }))
-    expect(screen.getAllByText('En attente').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Livré').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('À encaisser').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Alger').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Oran').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Blida').length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('hides the À encaisser aggregate for employees', async () => {
-    renderDelivery(employeeSession)
-    await screen.findByText('Ahmed Benali')
-    expect(screen.queryByText('À encaisser')).not.toBeInTheDocument()
-    expect(screen.getAllByText('En attente').length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('shows items, total, paid and due on each order card', async () => {
-    renderDelivery(ownerSession)
-    await screen.findByText('Ahmed Benali')
-    expect(screen.getAllByText('Matelas Elite 160x190').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('45 000 DZD').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('13 500 DZD').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('31 500 DZD').length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('Encaisser le Solde calls addPayment with the remaining amount', async () => {
-    renderDelivery(ownerSession)
-    const user = userEvent.setup()
-    await screen.findByText('Ahmed Benali')
-    await user.click(screen.getAllByRole('button', { name: /Encaisser le Solde/ })[0])
+    await user.click(screen.getAllByRole('button', { name: /Encaisser et livrer/ })[0])
     const dialog = await screen.findAllByRole('dialog')
-    await user.click(within(dialog[0]).getByRole('button', { name: /Encaisser/ }))
+    await user.click(within(dialog[0]).getByRole('button', { name: /Encaisser et livrer/ }))
     await waitFor(() => expect(mockApi.sales.addPayment).toHaveBeenCalled())
-    const input = vi.mocked(mockApi.sales.addPayment).mock.calls.at(-1)![0] as {
-      saleId: number
-      amount: number
-      type: string
-    }
-    expect(input.saleId).toBe(1)
-    expect(input.amount).toBe(31500)
-    expect(input.type).toBe('balance')
+    const payment = vi.mocked(mockApi.sales.addPayment).mock.calls.at(-1)![0] as { saleId: number; amount: number }
+    expect(payment.saleId).toBe(1)
+    expect(payment.amount).toBe(31500)
+    await waitFor(() => expect(mockApi.sales.setStatus).toHaveBeenCalledWith({ saleId: 1, status: 'delivered' }))
   })
 
-  it('Marquer comme Livré on a paid order marks delivered directly', async () => {
+  it('Marquer comme livré on a paid order skips payment', async () => {
     renderDelivery(ownerSession)
     const user = userEvent.setup()
     await screen.findByText('Sofiane Merbah')
-    const card = screen.getByText('Sofiane Merbah').closest('div') as HTMLElement
-    const cardRoot = card.closest('[data-slot="card"]') as HTMLElement
-    await user.click(within(cardRoot).getByRole('button', { name: /Marquer comme Livré/ }))
+    const card = screen.getByText('Sofiane Merbah').closest('[data-slot="card"]') as HTMLElement
+    await user.click(within(card).getByRole('button', { name: /Marquer comme livré/i }))
     const dialog = await screen.findAllByRole('dialog')
     await user.click(within(dialog[0]).getByRole('button', { name: /Livrer/ }))
     await waitFor(() => expect(mockApi.sales.setStatus).toHaveBeenCalledWith({ saleId: 4, status: 'delivered' }))
     expect(mockApi.sales.addPayment).not.toHaveBeenCalled()
   })
 
-  it('Marquer comme Livré with a balance prompts collection first', async () => {
-    renderDelivery(ownerSession)
-    const user = userEvent.setup()
+  it('hides the À encaisser aggregate for employees', async () => {
+    renderDelivery(employeeSession)
     await screen.findByText('Ahmed Benali')
-    await user.click(screen.getAllByRole('button', { name: /Marquer comme Livré/ })[0])
-    const dialog = await screen.findAllByRole('dialog')
-    await user.click(within(dialog[0]).getByRole('button', { name: /Encaisser et livrer/ }))
-    await waitFor(() => expect(mockApi.sales.addPayment).toHaveBeenCalled())
-    await waitFor(() => expect(mockApi.sales.setStatus).toHaveBeenCalledWith({ saleId: 1, status: 'delivered' }))
+    expect(screen.queryByText('À encaisser')).not.toBeInTheDocument()
   })
 })

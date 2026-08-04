@@ -31,7 +31,7 @@ export function createProduct(db: Database, input: NewProductInput): number {
 
 const PRODUCT_QUERY = `
   SELECT
-    p.id, p.name, p.category_id, p.supplier_id, p.image_path, p.active,
+    p.id, p.name, p.category_id, p.supplier_id, p.image_path, p.active, p.created_at,
     c.name AS category_name,
     s.name AS supplier_name
   FROM products p
@@ -74,6 +74,7 @@ export function listProducts(db: Database): ProductWithVariants[] {
     supplier_id: number | null
     image_path: string | null
     active: number
+    created_at: string
     category_name: string | null
     supplier_name: string | null
   }[]
@@ -89,6 +90,7 @@ export function listProducts(db: Database): ProductWithVariants[] {
     supplier_id: row.supplier_id,
     supplier_name: row.supplier_name,
     image_path: row.image_path,
+    created_at: row.created_at,
     active: Boolean(row.active),
     variants: variants
       .filter((v) => v.product_id === row.id)

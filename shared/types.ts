@@ -151,6 +151,7 @@ export interface ProductWithVariants {
   supplier_id: number | null
   supplier_name: string | null
   image_path: string | null
+  created_at: string
   active: boolean
   variants: ProductVariantWithStock[]
 }
